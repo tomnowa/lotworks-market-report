@@ -1,16 +1,33 @@
-# LotWorks Website Market Report
+# LotWorks Website Market Report v2
 
-A modern analytics dashboard for LotWorks public maps, showing buyer engagement metrics, community performance, and lot interest rankings.
-
-![Dashboard Preview](./preview.png)
+A comprehensive analytics dashboard for LotWorks public maps, showing buyer engagement metrics, community performance, device analytics, and lot interest rankings.
 
 ## Features
 
-- **Summary Metrics**: Total map loads, lot clicks, click-through rate
-- **AI Insights**: Auto-generated insights highlighting trends and opportunities
-- **Community Performance**: Compare engagement across all communities
-- **Lot Click Rankings**: See which lots are getting the most attention
-- **Time Series Charts**: Visualize engagement trends over time
+### Summary Metrics
+- **Map Loads** - Total page views on map pages
+- **Lot Clicks** - Total clicks on lot info windows
+- **Avg. Time on Map** - Average session duration
+- **Click Rate** - Lot clicks as percentage of map loads
+
+### Analytics Sections
+- **AI Insights** - Auto-generated actionable insights
+- **Map Load Trend** - Daily views over time
+- **Lot Clicks by Day of Week** - Engagement patterns
+- **Device Category** - Mobile vs Desktop vs Tablet
+- **Top Countries** - Geographic distribution
+- **Browser & OS Breakdown** - Technical demographics
+- **Top Traffic Sources** - Referral analysis
+- **Community Performance** - Sortable, paginated table with heatmaps
+- **Lot Click Ranking** - Top performing lots
+
+### Interactive Features
+- **Client Selector** - Switch between organizations
+- **Date Range Picker** - Preset and custom date ranges
+- **Export to CSV** - Download full report data
+- **Refresh** - Real-time data updates
+- **Pagination** - Navigate large datasets
+- **Sortable Columns** - Click to sort tables
 
 ## Tech Stack
 
@@ -32,21 +49,17 @@ npm install
 
 ### 2. Configure Environment Variables
 
-Copy the example env file:
-
-```bash
-cp .env.example .env.local
-```
-
-Edit `.env.local` with your GA4 credentials:
+Create `.env.local`:
 
 ```env
 GA4_PROPERTY_ID=388261311
-GA4_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com
-GA4_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+GOOGLE_SERVICE_ACCOUNT_BASE64=<base64-encoded-service-account-json>
 ```
 
-**Important**: The private key must include the `\n` characters for line breaks.
+To generate the base64 string:
+```bash
+base64 -i your-service-account.json | tr -d '\n'
+```
 
 ### 3. Run Development Server
 
@@ -54,39 +67,16 @@ GA4_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see the dashboard.
-
-If GA4 credentials are not configured, the app will show mock data.
+Open [http://localhost:3000](http://localhost:3000)
 
 ## Deploying to Vercel
 
-### 1. Push to GitHub
-
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-git remote add origin https://github.com/YOUR_USERNAME/lotworks-market-report.git
-git push -u origin main
-```
-
-### 2. Import to Vercel
-
-1. Go to [vercel.com/new](https://vercel.com/new)
-2. Import your GitHub repository
-3. Configure environment variables:
+1. Push to GitHub
+2. Import in Vercel
+3. Add environment variables:
    - `GA4_PROPERTY_ID`
-   - `GA4_CLIENT_EMAIL`
-   - `GA4_PRIVATE_KEY`
-4. Click **Deploy**
-
-### Environment Variables in Vercel
-
-When adding `GA4_PRIVATE_KEY` in Vercel:
-1. Go to your project settings → Environment Variables
-2. Add the key name: `GA4_PRIVATE_KEY`
-3. Paste the entire private key including `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----`
-4. Vercel will handle the formatting automatically
+   - `GOOGLE_SERVICE_ACCOUNT_BASE64`
+4. Deploy
 
 ## Project Structure
 
@@ -94,79 +84,39 @@ When adding `GA4_PRIVATE_KEY` in Vercel:
 lotworks-market-report/
 ├── app/
 │   ├── api/
-│   │   ├── clients/
-│   │   │   └── route.ts        # GET /api/clients
-│   │   └── report/
-│   │       └── [client]/
-│   │           └── route.ts    # GET /api/report/:client
+│   │   ├── clients/route.ts    # GET /api/clients
+│   │   └── report/[client]/route.ts  # GET /api/report/:client
 │   ├── globals.css
 │   ├── layout.tsx
-│   └── page.tsx                # Main dashboard page
-├── components/
-│   ├── charts/
-│   │   └── index.tsx           # Recharts components
-│   └── dashboard/
-│       ├── CommunityRow.tsx
-│       ├── InsightCard.tsx
-│       ├── StatCard.tsx
-│       └── TopLotRow.tsx
+│   └── page.tsx                # Main dashboard
 ├── lib/
-│   ├── ga4.ts                  # GA4 API client
-│   └── mock-data.ts            # Mock data for development
+│   └── ga4.ts                  # GA4 API client
 ├── types/
-│   └── index.ts                # TypeScript types
+│   └── index.ts                # TypeScript definitions
 └── ...config files
 ```
 
 ## API Endpoints
 
 ### GET /api/clients
-
-Returns a list of all available client organizations.
-
-```json
-{
-  "clients": ["Coastal Bend Lots", "Sunrise Communities", ...]
-}
-```
+Returns available client organizations.
 
 ### GET /api/report/:client
-
-Returns the full market report for a specific client.
+Returns full market report.
 
 **Query Parameters:**
-- `start_date` (optional): Start date in YYYY-MM-DD format (default: 28 days ago)
-- `end_date` (optional): End date in YYYY-MM-DD format (default: today)
+- `start_date` (YYYY-MM-DD, default: 30 days ago)
+- `end_date` (YYYY-MM-DD, default: today)
 
-**Example:**
-```
-GET /api/report/Coastal%20Bend%20Lots?start_date=2025-12-01&end_date=2025-12-31
-```
+## GA4 Custom Dimensions Required
 
-## GA4 Custom Dimensions
-
-This dashboard expects the following custom dimensions in your GA4 property:
-
-| Dimension Name | Scope | Description |
-|----------------|-------|-------------|
-| `Client` | Event | Organization/client identifier |
-| `Community` | Event | Community/neighborhood name |
-| `Lot` | Event | Individual lot identifier |
-
-And the following event:
-
-| Event Name | Description |
-|------------|-------------|
-| `maps-openInfoWin` | Fired when a user clicks on a lot |
-
-## Future Enhancements
-
-- [ ] Firebase Authentication integration
-- [ ] Multi-client selector
-- [ ] Date range picker
-- [ ] PDF/CSV export
-- [ ] Real-time updates
-- [ ] Geographic heatmaps
+| Dimension | Parameter |
+|-----------|-----------|
+| Client | `c_client` |
+| Community | `c_community` |
+| Lot | `c_lot` |
+| URL Path | `c_urlpath` |
+| Category | `c_category` |
 
 ## License
 

@@ -16,8 +16,11 @@ export interface Summary {
   totalLotClicks: number;
   clickThroughRate: number;
   topCommunity: string;
+  avgTimeOnMap?: string;
   mapLoadsChange?: number;
   lotClicksChange?: number;
+  avgTimeChange?: number;
+  clickRateChange?: number;
 }
 
 export interface CommunityPerformance {
@@ -26,6 +29,10 @@ export interface CommunityPerformance {
   mapLoads: number;
   lotClicks: number;
   ctr: number;
+  engagementRate?: number;
+  bounceRate?: number;
+  avgSessionDuration?: string;
+  eventsPerSession?: number;
 }
 
 export interface TopLot {
@@ -42,8 +49,45 @@ export interface ViewOverTime {
   [community: string]: number | string;
 }
 
+export interface DayOfWeekData {
+  day: string;
+  clicks: number;
+  dayIndex: number;
+}
+
+export interface DeviceData {
+  device: string;
+  users: number;
+  percentage: number;
+}
+
+export interface CountryData {
+  country: string;
+  users: number;
+  percentage: number;
+}
+
+export interface BrowserData {
+  browser: string;
+  users: number;
+  percentage: number;
+}
+
+export interface OperatingSystemData {
+  os: string;
+  users: number;
+  percentage: number;
+}
+
+export interface TrafficSource {
+  source: string;
+  medium: string;
+  sessions: number;
+  percentage: number;
+}
+
 export interface Insight {
-  type: 'trending' | 'hot' | 'opportunity';
+  type: 'trending' | 'hot' | 'opportunity' | 'warning';
   title: string;
   description: string;
 }
@@ -55,5 +99,16 @@ export interface MarketReport {
   communityPerformance: CommunityPerformance[];
   topLots: TopLot[];
   viewsOverTime: ViewOverTime[];
+  clicksByDayOfWeek: DayOfWeekData[];
+  deviceBreakdown: DeviceData[];
+  countryBreakdown: CountryData[];
+  browserBreakdown: BrowserData[];
+  osBreakdown: OperatingSystemData[];
+  trafficSources: TrafficSource[];
   insights: Insight[];
+}
+
+export interface ClientOption {
+  name: string;
+  id: string;
 }

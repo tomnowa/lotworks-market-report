@@ -16,7 +16,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="font-['Plus_Jakarta_Sans',system-ui,sans-serif]">{children}</body>
     </html>
   );
 }

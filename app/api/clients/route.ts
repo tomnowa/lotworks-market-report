@@ -1,18 +1,17 @@
 import { NextResponse } from 'next/server';
 import { fetchAvailableClients } from '@/lib/ga4';
-import { MOCK_CLIENTS } from '@/lib/mock-data';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    // Check if GA4 credentials are configured
     const hasCredentials = process.env.GA4_PROPERTY_ID && 
-                          process.env.GA4_CLIENT_EMAIL && 
-                          process.env.GA4_PRIVATE_KEY;
+      (process.env.GOOGLE_SERVICE_ACCOUNT_BASE64 || 
+       (process.env.GA4_CLIENT_EMAIL && process.env.GA4_PRIVATE_KEY));
     
     if (!hasCredentials) {
-      // Return mock data for development
       return NextResponse.json({
-        clients: MOCK_CLIENTS,
+        clients: ['Pacesetter Homes', 'Demo Client'],
         _mock: true,
       });
     }

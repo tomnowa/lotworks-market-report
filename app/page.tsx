@@ -19,13 +19,15 @@ import {
   TrendingDown,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ArrowUpDown,
   Flame,
   Lightbulb,
   AlertTriangle,
-  FileText,
-  Users,
   BarChart3,
+  FileWarning,
+  Info,
 } from 'lucide-react';
 import {
   LineChart,
@@ -77,8 +79,18 @@ function formatDateForDisplay(date: Date): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function formatCompactNumber(num: number): string {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  }
+  return num.toLocaleString();
+}
+
 function getHeatmapColor(value: number, max: number, colorType: 'green' | 'yellow' | 'blue' | 'purple' = 'green'): string {
-  if (max === 0) return 'transparent';
+  if (max === 0 || value === 0) return 'transparent';
   const intensity = Math.min(value / max, 1);
   
   const colors = {
@@ -89,33 +101,36 @@ function getHeatmapColor(value: number, max: number, colorType: 'green' | 'yello
   };
   
   const c = colors[colorType];
-  const alpha = 0.1 + (intensity * 0.5);
+  const alpha = 0.15 + (intensity * 0.5);
   return `rgba(${c.r}, ${c.g}, ${c.b}, ${alpha})`;
 }
 
 function exportReportToCSV(report: MarketReport) {
   const sections: string[] = [];
+  const orgName = report?.organization?.name || 'Unknown';
+  const dateStart = report?.dateRange?.start || '';
+  const dateEnd = report?.dateRange?.end || '';
   
   // Header
-  sections.push(`Website Market Report - ${report.organization.name}`);
-  sections.push(`Date Range: ${report.dateRange.start} to ${report.dateRange.end}`);
+  sections.push(`Website Market Report - ${orgName}`);
+  sections.push(`Date Range: ${dateStart} to ${dateEnd}`);
   sections.push(`Generated: ${new Date().toLocaleString()}`);
   sections.push('');
   
   // Summary
   sections.push('SUMMARY');
   sections.push('Metric,Value');
-  sections.push(`Map Loads,${report.summary.totalMapLoads}`);
-  sections.push(`Lot Clicks,${report.summary.totalLotClicks}`);
-  sections.push(`Click Rate,${report.summary.clickThroughRate}%`);
-  sections.push(`Avg Time on Map,${report.summary.avgTimeOnMap || 'N/A'}`);
-  sections.push(`Top Community,${report.summary.topCommunity}`);
+  sections.push(`Map Loads,${report?.summary?.totalMapLoads ?? 0}`);
+  sections.push(`Lot Clicks,${report?.summary?.totalLotClicks ?? 0}`);
+  sections.push(`Click Rate,${report?.summary?.clickThroughRate ?? 0}%`);
+  sections.push(`Avg Time on Map,${report?.summary?.avgTimeOnMap || 'N/A'}`);
+  sections.push(`Top Community,${report?.summary?.topCommunity || 'N/A'}`);
   sections.push('');
   
   // Community Performance
   sections.push('COMMUNITY PERFORMANCE');
   sections.push('Community,Map Loads,Lot Clicks,Click Rate %');
-  (report.communityPerformance || []).forEach(c => {
+  (report?.communityPerformance || []).forEach(c => {
     sections.push(`"${c.name}",${c.mapLoads},${c.lotClicks},${c.ctr}`);
   });
   sections.push('');
@@ -123,7 +138,7 @@ function exportReportToCSV(report: MarketReport) {
   // Top Lots
   sections.push('TOP CLICKED LOTS');
   sections.push('Rank,Lot,Community,Clicks,Share %');
-  (report.topLots || []).forEach(l => {
+  (report?.topLots || []).forEach(l => {
     sections.push(`${l.rank},"${l.lot}","${l.community}",${l.clicks},${l.share}`);
   });
   sections.push('');
@@ -131,7 +146,7 @@ function exportReportToCSV(report: MarketReport) {
   // Day of Week
   sections.push('CLICKS BY DAY OF WEEK');
   sections.push('Day,Clicks');
-  (report.clicksByDayOfWeek || []).forEach(d => {
+  (report?.clicksByDayOfWeek || []).forEach(d => {
     sections.push(`${d.day},${d.clicks}`);
   });
   sections.push('');
@@ -139,7 +154,7 @@ function exportReportToCSV(report: MarketReport) {
   // Devices
   sections.push('DEVICE BREAKDOWN');
   sections.push('Device,Users,Percentage');
-  (report.deviceBreakdown || []).forEach(d => {
+  (report?.deviceBreakdown || []).forEach(d => {
     sections.push(`${d.device},${d.users},${d.percentage}%`);
   });
   sections.push('');
@@ -147,7 +162,7 @@ function exportReportToCSV(report: MarketReport) {
   // Countries
   sections.push('TOP COUNTRIES');
   sections.push('Country,Users,Percentage');
-  (report.countryBreakdown || []).forEach(c => {
+  (report?.countryBreakdown || []).forEach(c => {
     sections.push(`"${c.country}",${c.users},${c.percentage}%`);
   });
   sections.push('');
@@ -155,7 +170,7 @@ function exportReportToCSV(report: MarketReport) {
   // Traffic Sources
   sections.push('TRAFFIC SOURCES');
   sections.push('Source,Medium,Sessions,Percentage');
-  (report.trafficSources || []).forEach(t => {
+  (report?.trafficSources || []).forEach(t => {
     sections.push(`"${t.source}","${t.medium}",${t.sessions},${t.percentage}%`);
   });
   
@@ -163,7 +178,7 @@ function exportReportToCSV(report: MarketReport) {
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  const filename = `${report.organization.name.replace(/\s+/g, '_')}_Report_${formatDateToISO(new Date())}.csv`;
+  const filename = `${orgName.replace(/\s+/g, '_')}_Report_${formatDateToISO(new Date())}.csv`;
   link.setAttribute('href', url);
   link.setAttribute('download', filename);
   link.style.visibility = 'hidden';
@@ -176,6 +191,23 @@ function exportReportToCSV(report: MarketReport) {
 // ============================================================================
 // COMPONENTS
 // ============================================================================
+
+// Empty State
+function EmptyState({ message = "No data available" }: { message?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-slate-400">
+      <FileWarning className="w-10 h-10 mb-2 opacity-50" />
+      <p className="text-sm">{message}</p>
+    </div>
+  );
+}
+
+// Loading Skeleton
+function Skeleton({ className = "" }: { className?: string }) {
+  return (
+    <div className={`animate-pulse bg-slate-200 rounded ${className}`} />
+  );
+}
 
 // Tooltip for charts
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ color: string; name: string; value: number }>; label?: string }) {
@@ -201,19 +233,22 @@ function StatCard({
   value, 
   change, 
   icon: Icon, 
-  accent = false 
+  accent = false,
+  compact = false
 }: { 
   title: string; 
   value: string | number; 
   change?: number; 
   icon: React.ElementType; 
   accent?: boolean;
+  compact?: boolean;
 }) {
   const hasChange = change !== undefined && !isNaN(change);
   const isPositive = hasChange && change >= 0;
+  const displayValue = typeof value === 'number' && !compact ? value.toLocaleString() : value;
   
   return (
-    <div className={`rounded-2xl p-5 transition-all duration-300 hover:shadow-lg ${
+    <div className={`rounded-2xl p-5 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${
       accent 
         ? 'bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 text-white shadow-lg border border-slate-700' 
         : 'bg-white border border-slate-200 shadow-sm hover:border-slate-300'
@@ -223,16 +258,16 @@ function StatCard({
           <Icon className={`w-5 h-5 ${accent ? 'text-lime-400' : 'text-emerald-600'}`} />
         </div>
         {hasChange && (
-          <div className={`flex items-center gap-1 text-sm font-semibold px-2 py-1 rounded-lg ${
+          <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg ${
             isPositive ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'
           }`}>
-            {isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+            {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
             {Math.abs(change).toFixed(1)}%
           </div>
         )}
       </div>
-      <div className={`text-3xl font-bold mb-1 ${accent ? 'text-white' : 'text-slate-800'}`}>
-        {typeof value === 'number' ? value.toLocaleString() : value}
+      <div className={`text-3xl font-bold mb-1 tracking-tight ${accent ? 'text-white' : 'text-slate-800'}`}>
+        {displayValue}
       </div>
       <div className={`text-sm font-medium ${accent ? 'text-slate-400' : 'text-slate-500'}`}>{title}</div>
     </div>
@@ -252,13 +287,13 @@ function InsightCard({ type, title, description }: { type: string; title: string
   const Icon = config.icon;
   
   return (
-    <div className={`rounded-xl p-4 border ${config.bg} ${config.border}`}>
+    <div className={`rounded-xl p-4 border transition-all duration-200 hover:shadow-md ${config.bg} ${config.border}`}>
       <div className="flex gap-3">
-        <div className={`p-2 rounded-lg h-fit ${config.iconBg}`}>
+        <div className={`p-2 rounded-lg h-fit flex-shrink-0 ${config.iconBg}`}>
           <Icon className="w-4 h-4" />
         </div>
         <div className="min-w-0">
-          <div className="font-semibold text-slate-800 mb-1 truncate">{title}</div>
+          <div className="font-semibold text-slate-800 mb-1 leading-tight">{title}</div>
           <div className="text-sm text-slate-600 leading-relaxed">{description}</div>
         </div>
       </div>
@@ -279,6 +314,8 @@ function DateRangePicker({
   disabled?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [tempStart, setTempStart] = useState(startDate);
+  const [tempEnd, setTempEnd] = useState(endDate);
   
   const presets = [
     { label: 'Last 7 days', days: 7 },
@@ -295,11 +332,9 @@ function DateRangePicker({
     let start: Date, end: Date;
     
     if (days === -1) {
-      // This month
       start = new Date(now.getFullYear(), now.getMonth(), 1);
       end = now;
     } else if (days === -2) {
-      // Last month
       start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       end = new Date(now.getFullYear(), now.getMonth(), 0);
     } else {
@@ -311,46 +346,48 @@ function DateRangePicker({
     setIsOpen(false);
   };
   
-  const handleStartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newStart = new Date(e.target.value + 'T00:00:00');
-    if (!isNaN(newStart.getTime())) {
-      onChange(newStart, endDate);
+  const handleApply = () => {
+    // Ensure start is before end, swap if needed
+    if (tempStart > tempEnd) {
+      onChange(tempEnd, tempStart);
+    } else {
+      onChange(tempStart, tempEnd);
     }
+    setIsOpen(false);
   };
-  
-  const handleEndChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newEnd = new Date(e.target.value + 'T00:00:00');
-    if (!isNaN(newEnd.getTime())) {
-      onChange(startDate, newEnd);
-    }
+
+  const handleOpen = () => {
+    setTempStart(startDate);
+    setTempEnd(endDate);
+    setIsOpen(true);
   };
   
   return (
     <div className="relative">
       <button
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={() => !disabled && handleOpen()}
         disabled={disabled}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-700/50 hover:bg-slate-700 transition-colors text-white disabled:opacity-50"
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-700/50 hover:bg-slate-700 transition-colors text-white disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Calendar className="w-4 h-4 text-slate-400" />
-        <span className="text-sm">
+        <span className="text-sm font-medium">
           {formatDateForDisplay(startDate)} – {formatDateForDisplay(endDate)}
         </span>
-        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50">
-            <div className="p-2 border-b border-slate-100">
-              <div className="text-xs font-semibold text-slate-500 uppercase px-3 py-2">Quick Select</div>
+          <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="p-3 border-b border-slate-100 bg-slate-50">
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Quick Select</div>
               <div className="grid grid-cols-2 gap-1">
                 {presets.map(preset => (
                   <button
                     key={preset.label}
                     onClick={() => handlePreset(preset.days)}
-                    className="text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                    className="text-left px-3 py-2 text-sm text-slate-700 hover:bg-white hover:shadow-sm rounded-lg transition-all"
                   >
                     {preset.label}
                   </button>
@@ -359,28 +396,34 @@ function DateRangePicker({
             </div>
             <div className="p-4 space-y-3">
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1.5">Start Date</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Start Date</label>
                 <input
                   type="date"
-                  value={formatDateToISO(startDate)}
-                  onChange={handleStartChange}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  value={formatDateToISO(tempStart)}
+                  onChange={(e) => setTempStart(new Date(e.target.value + 'T00:00:00'))}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1.5">End Date</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">End Date</label>
                 <input
                   type="date"
-                  value={formatDateToISO(endDate)}
-                  onChange={handleEndChange}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  value={formatDateToISO(tempEnd)}
+                  onChange={(e) => setTempEnd(new Date(e.target.value + 'T00:00:00'))}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                 />
               </div>
+              {tempStart > tempEnd && (
+                <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
+                  <Info className="w-3.5 h-3.5" />
+                  Dates will be swapped automatically
+                </div>
+              )}
               <button
-                onClick={() => setIsOpen(false)}
-                className="w-full py-2 bg-emerald-500 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 transition-colors"
+                onClick={handleApply}
+                className="w-full py-2.5 bg-emerald-500 text-white text-sm font-semibold rounded-lg hover:bg-emerald-600 transition-colors"
               >
-                Apply
+                Apply Date Range
               </button>
             </div>
           </div>
@@ -408,42 +451,49 @@ function ClientSelector({
   const filtered = clients.filter(c => 
     c.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleClose = () => {
+    setIsOpen(false);
+    setSearch('');
+  };
   
   return (
     <div className="relative">
       <button
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-700/50 hover:bg-slate-700 transition-colors text-white min-w-[220px] disabled:opacity-50"
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-700/50 hover:bg-slate-700 transition-colors text-white min-w-[200px] disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Building2 className="w-4 h-4 text-lime-400" />
-        <span className="text-sm flex-1 text-left font-medium">{selected}</span>
-        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <span className="text-sm flex-1 text-left font-medium truncate">{selected}</span>
+        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute left-0 top-full mt-2 w-72 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50">
-            <div className="p-2 border-b border-slate-100">
+          <div className="fixed inset-0 z-40" onClick={handleClose} />
+          <div className="absolute left-0 top-full mt-2 w-72 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="p-3 border-b border-slate-100">
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search clients..."
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                 autoFocus
               />
             </div>
             <div className="max-h-64 overflow-y-auto p-2">
               {filtered.length === 0 ? (
-                <div className="px-3 py-4 text-sm text-slate-500 text-center">No clients found</div>
+                <div className="px-3 py-6 text-sm text-slate-400 text-center">
+                  No clients found
+                </div>
               ) : (
                 filtered.map(client => (
                   <button
                     key={client}
-                    onClick={() => { onChange(client); setIsOpen(false); setSearch(''); }}
-                    className={`w-full text-left px-3 py-2.5 text-sm rounded-lg transition-colors ${
+                    onClick={() => { onChange(client); handleClose(); }}
+                    className={`w-full text-left px-3 py-2.5 text-sm rounded-lg transition-all ${
                       client === selected 
                         ? 'bg-emerald-50 text-emerald-700 font-semibold' 
                         : 'text-slate-700 hover:bg-slate-100'
@@ -474,6 +524,32 @@ function SectionHeader({ title, subtitle, action }: { title: string; subtitle?: 
   );
 }
 
+// Chart Card wrapper with empty state
+function ChartCard({ 
+  title, 
+  subtitle, 
+  children, 
+  isEmpty = false,
+  className = "",
+  height = "h-56"
+}: { 
+  title: string; 
+  subtitle?: string; 
+  children: React.ReactNode; 
+  isEmpty?: boolean;
+  className?: string;
+  height?: string;
+}) {
+  return (
+    <div className={`bg-white rounded-2xl border border-slate-200 p-6 shadow-sm ${className}`}>
+      <SectionHeader title={title} subtitle={subtitle} />
+      <div className={height}>
+        {isEmpty ? <EmptyState /> : children}
+      </div>
+    </div>
+  );
+}
+
 // Paginated Table
 function DataTable<T extends Record<string, unknown>>({ 
   data, 
@@ -499,6 +575,11 @@ function DataTable<T extends Record<string, unknown>>({
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   
+  // Reset page when data changes
+  useEffect(() => {
+    setPage(0);
+  }, [data.length]);
+
   const sortedData = useMemo(() => {
     if (!sortKey) return data;
     return [...data].sort((a, b) => {
@@ -526,6 +607,18 @@ function DataTable<T extends Record<string, unknown>>({
     setPage(0);
   };
   
+  if (data.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+          <h3 className="text-base font-bold text-slate-800">{title}</h3>
+          {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
+        </div>
+        <EmptyState message="No data to display" />
+      </div>
+    );
+  }
+  
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
@@ -534,7 +627,7 @@ function DataTable<T extends Record<string, unknown>>({
             <h3 className="text-base font-bold text-slate-800">{title}</h3>
             {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
           </div>
-          <span className="text-xs font-medium text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">
+          <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
             {data.length} total
           </span>
         </div>
@@ -543,20 +636,20 @@ function DataTable<T extends Record<string, unknown>>({
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-slate-100">
+            <tr className="border-b border-slate-100 bg-slate-50/30">
               {columns.map(col => (
                 <th
                   key={col.key}
                   style={{ width: col.width }}
                   className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider ${
                     col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
-                  } ${col.sortable ? 'cursor-pointer hover:bg-slate-50 select-none' : ''} text-slate-500`}
+                  } ${col.sortable ? 'cursor-pointer hover:bg-slate-100 select-none transition-colors' : ''} text-slate-500`}
                   onClick={() => col.sortable && handleSort(col.key)}
                 >
-                  <div className="flex items-center gap-1.5">
+                  <div className={`flex items-center gap-1.5 ${col.align === 'right' ? 'justify-end' : ''}`}>
                     {col.label}
                     {col.sortable && (
-                      <ArrowUpDown className={`w-3 h-3 ${sortKey === col.key ? 'text-emerald-600' : 'text-slate-300'}`} />
+                      <ArrowUpDown className={`w-3 h-3 transition-colors ${sortKey === col.key ? 'text-emerald-600' : 'text-slate-300'}`} />
                     )}
                   </div>
                 </th>
@@ -569,7 +662,7 @@ function DataTable<T extends Record<string, unknown>>({
                 {columns.map(col => (
                   <td
                     key={col.key}
-                    className={`px-4 py-3 text-sm ${
+                    className={`px-4 py-3.5 text-sm ${
                       col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
                     }`}
                   >
@@ -591,35 +684,37 @@ function DataTable<T extends Record<string, unknown>>({
             <button
               onClick={() => setPage(0)}
               disabled={page === 0}
-              className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="First page"
             >
-              <ChevronLeft className="w-4 h-4" />
-              <ChevronLeft className="w-4 h-4 -ml-3" />
+              <ChevronsLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => setPage(p => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Previous page"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="px-3 text-sm font-medium text-slate-700">
+            <span className="px-3 py-1 text-sm font-medium text-slate-700 bg-white rounded-lg border border-slate-200">
               {page + 1} / {totalPages}
             </span>
             <button
               onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
-              className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Next page"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
             <button
               onClick={() => setPage(totalPages - 1)}
               disabled={page >= totalPages - 1}
-              className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Last page"
             >
-              <ChevronRight className="w-4 h-4" />
-              <ChevronRight className="w-4 h-4 -ml-3" />
+              <ChevronsRight className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -646,6 +741,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // Fetch clients on mount
   useEffect(() => {
@@ -654,9 +750,8 @@ export default function Dashboard() {
       .then(data => {
         const list = data.clients || [DEFAULT_CLIENT];
         setClients(list);
-        // If current selection isn't in list, select first available
-        if (!list.includes(selectedClient) && list.length > 0) {
-          // Try to find Pacesetter Homes or similar
+        // If current selection isn't in list, find a suitable default
+        if (!list.includes(DEFAULT_CLIENT) && list.length > 0) {
           const pacesetter = list.find((c: string) => c.toLowerCase().includes('pacesetter'));
           setSelectedClient(pacesetter || list[0]);
         }
@@ -683,11 +778,12 @@ export default function Dashboard() {
       
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || `Failed to fetch report (${response.status})`);
+        throw new Error(err.error || err.details || `Failed to fetch report (${response.status})`);
       }
       
       const data = await response.json();
       setReport(data);
+      setLastUpdated(new Date());
     } catch (err) {
       console.error('Fetch error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -740,10 +836,10 @@ export default function Dashboard() {
             <AlertCircle className="w-8 h-8 text-red-500" />
           </div>
           <h2 className="text-xl font-bold text-slate-800 mb-2">Failed to Load Report</h2>
-          <p className="text-slate-600 mb-6">{error}</p>
+          <p className="text-slate-600 mb-6 text-sm">{error}</p>
           <button
             onClick={() => fetchReport(false)}
-            className="px-6 py-3 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors"
+            className="px-6 py-3 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600 transition-colors"
           >
             Try Again
           </button>
@@ -755,26 +851,37 @@ export default function Dashboard() {
   if (!report) return null;
 
   // Calculate max values for heat mapping
-  const maxLoads = Math.max(...(report.communityPerformance || []).map(c => c.mapLoads), 1);
-  const maxClicks = Math.max(...(report.communityPerformance || []).map(c => c.lotClicks), 1);
-  const maxLotClicks = Math.max(...(report.topLots || []).map(l => l.clicks), 1);
-  const maxDayClicks = Math.max(...(report.clicksByDayOfWeek || []).map(d => d.clicks), 1);
+  const communityPerf = report.communityPerformance || [];
+  const topLots = report.topLots || [];
+  const clicksByDay = report.clicksByDayOfWeek || [];
+  const devices = report.deviceBreakdown || [];
+  const countries = report.countryBreakdown || [];
+  const browsers = report.browserBreakdown || [];
+  const osList = report.osBreakdown || [];
+  const traffic = report.trafficSources || [];
+  const insights = report.insights || [];
+  const viewsData = report.viewsOverTime || [];
+
+  const maxLoads = Math.max(...communityPerf.map(c => c.mapLoads), 1);
+  const maxClicks = Math.max(...communityPerf.map(c => c.lotClicks), 1);
+  const maxLotClicks = Math.max(...topLots.map(l => l.clicks), 1);
+  const maxDayClicks = Math.max(...clicksByDay.map(d => d.clicks), 1);
 
   // Get top communities for the multi-line chart
-  const topCommunities = (report.communityPerformance || [])
+  const topCommunities = communityPerf
     .sort((a, b) => b.mapLoads - a.mapLoads)
-    .slice(0, 10)
+    .slice(0, 8)
     .map(c => c.name);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 print:bg-white">
       {/* Header */}
-      <header className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white sticky top-0 z-30">
+      <header className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white sticky top-0 z-30 print:static print:bg-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           {/* Top row */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-lime-400 to-emerald-500 flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-lime-400 to-emerald-500 flex items-center justify-center shadow-lg print:shadow-none">
                 <BarChart3 className="w-5 h-5 text-slate-900" />
               </div>
               <div>
@@ -783,11 +890,12 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 print:hidden">
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-700/50 hover:bg-slate-700 transition-all text-sm disabled:opacity-50"
+                title="Refresh data"
               >
                 <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">{refreshing ? 'Refreshing...' : 'Refresh'}</span>
@@ -796,16 +904,17 @@ export default function Dashboard() {
                 onClick={handleExport}
                 disabled={!report}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-lime-400 text-slate-900 hover:bg-lime-300 transition-all text-sm font-semibold disabled:opacity-50"
+                title="Export as CSV"
               >
                 <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">Export CSV</span>
+                <span className="hidden sm:inline">Export</span>
               </button>
             </div>
           </div>
 
           {/* Controls row */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
               <ClientSelector
                 clients={clients}
                 selected={selectedClient}
@@ -813,7 +922,7 @@ export default function Dashboard() {
                 disabled={loading || refreshing}
               />
               <div className="hidden md:block">
-                <h1 className="text-xl font-bold">{report.organization.name}</h1>
+                <h1 className="text-xl font-bold">{report.organization?.name || selectedClient}</h1>
                 <p className="text-slate-400 text-xs">Public map analytics dashboard</p>
               </div>
             </div>
@@ -832,7 +941,7 @@ export default function Dashboard() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Refresh overlay */}
         {refreshing && (
-          <div className="fixed inset-0 bg-white/60 backdrop-blur-sm z-20 flex items-center justify-center">
+          <div className="fixed inset-0 bg-white/60 backdrop-blur-sm z-20 flex items-center justify-center print:hidden">
             <div className="bg-white rounded-2xl shadow-2xl p-6 flex items-center gap-4 border border-slate-200">
               <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
               <span className="text-slate-700 font-medium">Updating report...</span>
@@ -844,40 +953,40 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatCard
             title="Map Loads"
-            value={report.summary.totalMapLoads}
-            change={report.summary.mapLoadsChange}
+            value={report.summary?.totalMapLoads ?? 0}
+            change={report.summary?.mapLoadsChange}
             icon={Eye}
             accent
           />
           <StatCard
             title="Lot Clicks"
-            value={report.summary.totalLotClicks}
-            change={report.summary.lotClicksChange}
+            value={report.summary?.totalLotClicks ?? 0}
+            change={report.summary?.lotClicksChange}
             icon={MousePointerClick}
           />
           <StatCard
             title="Avg. Time on Map"
-            value={report.summary.avgTimeOnMap || '—'}
-            change={report.summary.avgTimeChange}
+            value={report.summary?.avgTimeOnMap || '—'}
+            change={report.summary?.avgTimeChange}
             icon={Clock}
           />
           <StatCard
             title="Click Rate"
-            value={`${report.summary.clickThroughRate?.toFixed(1) || 0}%`}
-            change={report.summary.clickRateChange}
+            value={`${(report.summary?.clickThroughRate ?? 0).toFixed(1)}%`}
+            change={report.summary?.clickRateChange}
             icon={Target}
           />
         </div>
 
         {/* AI Insights */}
-        {report.insights && report.insights.length > 0 && (
+        {insights.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <h2 className="text-lg font-bold text-slate-800">AI Insights</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {report.insights.slice(0, 4).map((insight, i) => (
+              {insights.slice(0, 4).map((insight, i) => (
                 <InsightCard key={i} {...insight} />
               ))}
             </div>
@@ -886,95 +995,96 @@ export default function Dashboard() {
 
         {/* Charts Row 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Map Load Trend - Multi-line */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-            <SectionHeader title="Map Load Trend" subtitle="Daily views by community" />
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={report.viewsOverTime || []}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Line type="monotone" dataKey="total" name="Total" stroke="#0f172a" strokeWidth={2.5} dot={false} />
-                  {topCommunities.slice(0, 6).map((community, i) => {
-                    const key = community.replace(/\s+/g, '').replace(/^./, c => c.toLowerCase());
-                    return (
-                      <Line 
-                        key={community}
-                        type="monotone" 
-                        dataKey={key}
-                        name={community}
-                        stroke={CHART_COLORS[i % CHART_COLORS.length]} 
-                        strokeWidth={1.5} 
-                        dot={false}
-                        strokeOpacity={0.8}
-                      />
-                    );
-                  })}
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          {/* Map Load Trend */}
+          <ChartCard 
+            title="Map Load Trend" 
+            subtitle="Daily views by community"
+            isEmpty={viewsData.length === 0}
+            className="lg:col-span-2"
+            height="h-80"
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={viewsData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
+                <Tooltip content={<ChartTooltip />} />
+                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
+                <Line type="monotone" dataKey="total" name="Total" stroke="#0f172a" strokeWidth={2.5} dot={false} />
+                {topCommunities.slice(0, 5).map((community, i) => {
+                  const key = community.replace(/\s+/g, '').replace(/^./, c => c.toLowerCase());
+                  return (
+                    <Line 
+                      key={community}
+                      type="monotone" 
+                      dataKey={key}
+                      name={community}
+                      stroke={CHART_COLORS[i % CHART_COLORS.length]} 
+                      strokeWidth={1.5} 
+                      dot={false}
+                      strokeOpacity={0.8}
+                    />
+                  );
+                })}
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartCard>
 
           {/* Lot Clicks by Day of Week */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-            <SectionHeader title="Lot Clicks by Day" />
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={report.clicksByDayOfWeek || []}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis 
-                    dataKey="day" 
-                    tick={{ fontSize: 10, fill: '#64748b' }} 
-                    tickLine={false}
-                    tickFormatter={v => v?.slice(0, 3)}
-                  />
-                  <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Bar dataKey="clicks" name="Clicks" radius={[4, 4, 0, 0]}>
-                    {(report.clicksByDayOfWeek || []).map((entry, i) => (
-                      <Cell key={i} fill={getHeatmapColor(entry.clicks, maxDayClicks, 'green')} stroke="#10b981" strokeWidth={1} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <ChartCard 
+            title="Lot Clicks by Day" 
+            isEmpty={clicksByDay.length === 0}
+            height="h-80"
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={clicksByDay}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                <XAxis 
+                  dataKey="day" 
+                  tick={{ fontSize: 10, fill: '#64748b' }} 
+                  tickLine={false}
+                  tickFormatter={v => v?.slice(0, 3)}
+                />
+                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
+                <Tooltip content={<ChartTooltip />} />
+                <Bar dataKey="clicks" name="Clicks" radius={[4, 4, 0, 0]}>
+                  {clicksByDay.map((entry, i) => (
+                    <Cell key={i} fill={getHeatmapColor(entry.clicks, maxDayClicks, 'green')} stroke="#10b981" strokeWidth={1} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
         </div>
 
         {/* Charts Row 2 - Demographics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {/* Device */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-            <SectionHeader title="Device Category" />
-            <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={report.deviceBreakdown || []}
-                    dataKey="users"
-                    nameKey="device"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={40}
-                    outerRadius={70}
-                    paddingAngle={2}
-                    label={({ device, percentage }) => `${percentage}%`}
-                    labelLine={false}
-                  >
-                    {(report.deviceBreakdown || []).map((entry, i) => (
-                      <Cell key={i} fill={DEVICE_COLORS[entry.device] || CHART_COLORS[i]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+          <ChartCard title="Device Category" isEmpty={devices.length === 0}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={devices}
+                  dataKey="users"
+                  nameKey="device"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={35}
+                  outerRadius={65}
+                  paddingAngle={2}
+                  label={({ percentage }) => `${percentage}%`}
+                  labelLine={false}
+                >
+                  {devices.map((entry, i) => (
+                    <Cell key={i} fill={DEVICE_COLORS[entry.device] || CHART_COLORS[i]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
             <div className="flex justify-center gap-4 mt-2">
-              {(report.deviceBreakdown || []).map((d, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs">
+              {devices.map((d, i) => (
+                <div key={i} className="flex items-center gap-1.5 text-xs">
                   {d.device === 'Mobile' && <Smartphone className="w-3.5 h-3.5 text-blue-500" />}
                   {d.device === 'Desktop' && <Monitor className="w-3.5 h-3.5 text-red-500" />}
                   {d.device === 'Tablet' && <Tablet className="w-3.5 h-3.5 text-amber-500" />}
@@ -982,57 +1092,51 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
-          </div>
+          </ChartCard>
 
           {/* Countries */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-            <SectionHeader title="Top Countries" />
-            <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={(report.countryBreakdown || []).slice(0, 5)} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 10, fill: '#64748b' }} tickLine={false} />
-                  <YAxis 
-                    type="category" 
-                    dataKey="country" 
-                    tick={{ fontSize: 10, fill: '#64748b' }} 
-                    tickLine={false} 
-                    axisLine={false} 
-                    width={70}
-                  />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Bar dataKey="users" name="Users" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <ChartCard title="Top Countries" isEmpty={countries.length === 0}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={countries.slice(0, 5)} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 10, fill: '#64748b' }} tickLine={false} />
+                <YAxis 
+                  type="category" 
+                  dataKey="country" 
+                  tick={{ fontSize: 10, fill: '#64748b' }} 
+                  tickLine={false} 
+                  axisLine={false} 
+                  width={70}
+                />
+                <Tooltip content={<ChartTooltip />} />
+                <Bar dataKey="users" name="Users" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
 
           {/* Browser */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-            <SectionHeader title="Browser" />
-            <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={(report.browserBreakdown || []).slice(0, 5)} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 10, fill: '#64748b' }} tickLine={false} />
-                  <YAxis 
-                    type="category" 
-                    dataKey="browser" 
-                    tick={{ fontSize: 10, fill: '#64748b' }} 
-                    tickLine={false} 
-                    axisLine={false} 
-                    width={70}
-                  />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Bar dataKey="users" name="Users" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <ChartCard title="Browser" isEmpty={browsers.length === 0}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={browsers.slice(0, 5)} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 10, fill: '#64748b' }} tickLine={false} />
+                <YAxis 
+                  type="category" 
+                  dataKey="browser" 
+                  tick={{ fontSize: 10, fill: '#64748b' }} 
+                  tickLine={false} 
+                  axisLine={false} 
+                  width={70}
+                />
+                <Tooltip content={<ChartTooltip />} />
+                <Bar dataKey="users" name="Users" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
         </div>
 
         {/* Traffic Sources */}
-        {report.trafficSources && report.trafficSources.length > 0 && (
+        {traffic.length > 0 && (
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mb-8">
             <SectionHeader title="Top Traffic Sources" subtitle="Where your visitors come from" />
             <div className="overflow-x-auto">
@@ -1046,11 +1150,11 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {report.trafficSources.slice(0, 5).map((s, i) => (
-                    <tr key={i} className="border-b border-slate-50 hover:bg-slate-50/50">
+                  {traffic.slice(0, 5).map((s, i) => (
+                    <tr key={i} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                       <td className="py-3 px-4 text-sm font-medium text-slate-800">{s.source}</td>
                       <td className="py-3 px-4 text-sm text-slate-600">{s.medium}</td>
-                      <td className="py-3 px-4 text-sm text-slate-800 text-right font-medium">{s.sessions.toLocaleString()}</td>
+                      <td className="py-3 px-4 text-sm text-slate-800 text-right font-semibold">{s.sessions.toLocaleString()}</td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center gap-2 justify-end">
                           <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -1059,7 +1163,7 @@ export default function Dashboard() {
                               style={{ width: `${Math.min(s.percentage, 100)}%` }} 
                             />
                           </div>
-                          <span className="text-sm text-slate-600 w-12 text-right">{s.percentage}%</span>
+                          <span className="text-sm text-slate-600 w-12 text-right font-medium">{s.percentage}%</span>
                         </div>
                       </td>
                     </tr>
@@ -1075,15 +1179,15 @@ export default function Dashboard() {
           {/* Community Performance */}
           <DataTable<CommunityPerformance>
             title="Community Performance"
-            subtitle={`${(report.communityPerformance || []).length} communities`}
-            data={report.communityPerformance || []}
+            subtitle={`${communityPerf.length} communities`}
+            data={communityPerf}
             columns={[
               {
                 key: 'name',
                 label: 'Community',
                 render: (item) => (
-                  <div>
-                    <div className="font-medium text-slate-800">{item.name}</div>
+                  <div className="min-w-0">
+                    <div className="font-medium text-slate-800 truncate">{item.name}</div>
                     {item.path && <div className="text-xs text-slate-400 truncate max-w-[150px]">{item.path}</div>}
                   </div>
                 )
@@ -1098,7 +1202,7 @@ export default function Dashboard() {
                     className="inline-block px-2.5 py-1 rounded-md text-sm font-semibold"
                     style={{ backgroundColor: getHeatmapColor(item.mapLoads, maxLoads, 'green') }}
                   >
-                    {item.mapLoads.toLocaleString()}
+                    {formatCompactNumber(item.mapLoads)}
                   </span>
                 )
               },
@@ -1112,7 +1216,7 @@ export default function Dashboard() {
                     className="inline-block px-2.5 py-1 rounded-md text-sm font-semibold"
                     style={{ backgroundColor: getHeatmapColor(item.lotClicks, maxClicks, 'yellow') }}
                   >
-                    {item.lotClicks.toLocaleString()}
+                    {formatCompactNumber(item.lotClicks)}
                   </span>
                 )
               },
@@ -1121,7 +1225,7 @@ export default function Dashboard() {
                 label: 'CTR',
                 align: 'right',
                 sortable: true,
-                width: '80px',
+                width: '70px',
                 render: (item) => (
                   <span className={`font-semibold ${
                     item.ctr >= 20 ? 'text-emerald-600' : item.ctr >= 10 ? 'text-amber-600' : 'text-slate-500'
@@ -1136,8 +1240,8 @@ export default function Dashboard() {
           {/* Top Lots */}
           <DataTable<TopLot>
             title="Lot Click Ranking"
-            subtitle={`${(report.topLots || []).length} lots tracked`}
-            data={report.topLots || []}
+            subtitle={`${topLots.length} lots tracked`}
+            data={topLots}
             columns={[
               {
                 key: 'rank',
@@ -1157,15 +1261,15 @@ export default function Dashboard() {
                 key: 'lot',
                 label: 'Lot',
                 render: (item) => (
-                  <div className="max-w-[180px]">
-                    <div className="font-medium text-slate-800 truncate">{item.lot}</div>
+                  <div className="max-w-[160px]">
+                    <div className="font-medium text-slate-800 truncate" title={item.lot}>{item.lot}</div>
                   </div>
                 )
               },
               {
                 key: 'community',
                 label: 'Community',
-                render: (item) => <span className="text-slate-600">{item.community}</span>
+                render: (item) => <span className="text-slate-600 truncate block max-w-[100px]" title={item.community}>{item.community}</span>
               },
               {
                 key: 'clicks',
@@ -1185,16 +1289,16 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* OS Breakdown */}
-        {report.osBreakdown && report.osBreakdown.length > 0 && (
+        {/* Bottom Row - OS & Quick Stats */}
+        {osList.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
               <SectionHeader title="Operating System" />
               <div className="space-y-3">
-                {report.osBreakdown.slice(0, 6).map((os, i) => (
+                {osList.slice(0, 6).map((os, i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <span className="w-20 text-sm text-slate-600 truncate font-medium">{os.os}</span>
-                    <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                    <span className="w-20 text-sm text-slate-600 truncate font-medium" title={os.os}>{os.os}</span>
+                    <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
                       <div 
                         className="h-full rounded-full transition-all"
                         style={{ 
@@ -1203,7 +1307,7 @@ export default function Dashboard() {
                         }}
                       />
                     </div>
-                    <span className="w-16 text-sm text-slate-500 text-right">{os.users.toLocaleString()}</span>
+                    <span className="w-14 text-sm text-slate-500 text-right">{formatCompactNumber(os.users)}</span>
                   </div>
                 ))}
               </div>
@@ -1214,20 +1318,22 @@ export default function Dashboard() {
               <SectionHeader title="Quick Stats" />
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl">
-                  <div className="text-2xl font-bold text-slate-800">{(report.communityPerformance || []).length}</div>
+                  <div className="text-2xl font-bold text-slate-800">{communityPerf.length}</div>
                   <div className="text-sm text-slate-500">Active Communities</div>
                 </div>
                 <div className="p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl">
-                  <div className="text-2xl font-bold text-slate-800">{(report.topLots || []).length}</div>
+                  <div className="text-2xl font-bold text-slate-800">{topLots.length}</div>
                   <div className="text-sm text-slate-500">Lots with Clicks</div>
                 </div>
                 <div className="p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl">
-                  <div className="text-xl font-bold text-emerald-700 truncate">{report.summary.topCommunity}</div>
+                  <div className="text-lg font-bold text-emerald-700 truncate" title={report.summary?.topCommunity}>
+                    {report.summary?.topCommunity || 'N/A'}
+                  </div>
                   <div className="text-sm text-emerald-600">Top Community</div>
                 </div>
                 <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
                   <div className="text-2xl font-bold text-blue-700">
-                    {(report.deviceBreakdown || []).find(d => d.device === 'Mobile')?.percentage || 0}%
+                    {devices.find(d => d.device === 'Mobile')?.percentage ?? 0}%
                   </div>
                   <div className="text-sm text-blue-600">Mobile Users</div>
                 </div>
@@ -1238,10 +1344,22 @@ export default function Dashboard() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-4 mt-8">
+      <footer className="bg-white border-t border-slate-200 py-4 mt-8 print:mt-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-slate-500">
-          <div>Powered by <span className="font-semibold text-slate-700">LotWorks</span></div>
-          <div>Report generated: {new Date().toLocaleString()}</div>
+          <div className="flex items-center gap-2">
+            <span>Powered by</span>
+            <span className="font-semibold text-slate-700">LotWorks</span>
+          </div>
+          <div className="flex items-center gap-4">
+            {lastUpdated && (
+              <span className="text-xs">
+                Last updated: {lastUpdated.toLocaleTimeString()}
+              </span>
+            )}
+            <span className="text-xs">
+              Report: {report.dateRange?.start} – {report.dateRange?.end}
+            </span>
+          </div>
         </div>
       </footer>
     </div>
