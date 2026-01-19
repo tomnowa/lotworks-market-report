@@ -551,7 +551,7 @@ function ChartCard({
 }
 
 // Paginated Table
-function DataTable<T extends Record<string, unknown>>({ 
+function DataTable<T extends object>({ 
   data, 
   columns, 
   title,
@@ -583,8 +583,8 @@ function DataTable<T extends Record<string, unknown>>({
   const sortedData = useMemo(() => {
     if (!sortKey) return data;
     return [...data].sort((a, b) => {
-      const aVal = a[sortKey];
-      const bVal = b[sortKey];
+      const aVal = (a as Record<string, unknown>)[sortKey];
+      const bVal = (b as Record<string, unknown>)[sortKey];
       if (typeof aVal === 'number' && typeof bVal === 'number') {
         return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
       }
@@ -666,7 +666,7 @@ function DataTable<T extends Record<string, unknown>>({
                       col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
                     }`}
                   >
-                    {col.render ? col.render(item, page * itemsPerPage + index) : String(item[col.key] ?? '')}
+                    {col.render ? col.render(item, page * itemsPerPage + index) : String((item as Record<string, unknown>)[col.key] ?? '')}
                   </td>
                 ))}
               </tr>
