@@ -76,13 +76,13 @@ export async function fetchMapLoads(
     property: `properties/${PROPERTY_ID}`,
     dateRanges: [{ startDate, endDate }],
     dimensions: [
-      { name: 'customEvent:Community' },
-      { name: 'pagePath' },
+      { name: 'customEvent:c_community' },
+      { name: 'customEvent:c_urlpath' },
     ],
     metrics: [{ name: 'screenPageViews' }],
     dimensionFilter: {
       filter: {
-        fieldName: 'customEvent:Client',
+        fieldName: 'customEvent:c_client',
         stringFilter: {
           matchType: 'EXACT',
           value: clientName,
@@ -120,20 +120,20 @@ export async function fetchLotClicks(
   const [response] = await client.runReport({
     property: `properties/${PROPERTY_ID}`,
     dateRanges: [{ startDate, endDate }],
-    dimensions: [{ name: 'customEvent:Community' }],
+    dimensions: [{ name: 'customEvent:c_community' }],
     metrics: [{ name: 'eventCount' }],
     dimensionFilter: {
       andGroup: {
         expressions: [
           {
             filter: {
-              fieldName: 'eventName',
+              fieldName: 'customEvent:c_category',
               stringFilter: { matchType: 'EXACT', value: 'maps-openInfoWin' },
             },
           },
           {
             filter: {
-              fieldName: 'customEvent:Client',
+              fieldName: 'customEvent:c_client',
               stringFilter: { matchType: 'EXACT', value: clientName },
             },
           },
@@ -171,21 +171,21 @@ export async function fetchTopLots(
   const [response] = await client.runReport({
     property: `properties/${PROPERTY_ID}`,
     dateRanges: [{ startDate, endDate }],
-    dimensions: [{ name: 'customEvent:Lot' }],
+    dimensions: [{ name: 'customEvent:c_lot' }],
     metrics: [{ name: 'eventCount' }],
     dimensionFilter: {
       andGroup: {
         expressions: [
           {
             filter: {
-              fieldName: 'customEvent:Client',
+              fieldName: 'customEvent:c_client',
               stringFilter: { matchType: 'EXACT', value: clientName },
             },
           },
           {
             notExpression: {
               filter: {
-                fieldName: 'customEvent:Lot',
+                fieldName: 'customEvent:c_lot',
                 stringFilter: { matchType: 'EXACT', value: '-' },
               },
             },
@@ -240,12 +240,12 @@ export async function fetchViewsOverTime(
     dateRanges: [{ startDate, endDate }],
     dimensions: [
       { name: 'date' },
-      { name: 'customEvent:Community' },
+      { name: 'customEvent:c_community' },
     ],
     metrics: [{ name: 'screenPageViews' }],
     dimensionFilter: {
       filter: {
-        fieldName: 'customEvent:Client',
+        fieldName: 'customEvent:c_client',
         stringFilter: { matchType: 'EXACT', value: clientName },
       },
     },
@@ -289,7 +289,7 @@ export async function fetchAvailableClients(): Promise<string[]> {
   const [response] = await client.runReport({
     property: `properties/${PROPERTY_ID}`,
     dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-    dimensions: [{ name: 'customEvent:Client' }],
+    dimensions: [{ name: 'customEvent:c_client' }],
     metrics: [{ name: 'eventCount' }],
     orderBys: [{ metric: { metricName: 'eventCount' }, desc: true }],
     limit: 100,
