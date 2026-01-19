@@ -3,9 +3,34 @@ import type { MarketReport, CommunityPerformance, TopLot, ViewOverTime, Insight 
 
 // Initialize GA4 client with environment variables
 function getClient() {
+  const clientEmail = process.env.GA4_CLIENT_EMAIL;
+  let privateKey = process.env.GA4_PRIVATE_KEY;
+  
+  if (!clientEmail || !privateKey) {
+    throw new Error('GA4 credentials not configured');
+  }
+  
+  // Handle different private key formats
+  // Vercel might store it with literal \n or actual newlines
+  if (privateKey.includes('\\n')) {
+    privateKey = privateKey.replace(/\\n/g, '\n');
+  }
+  
+  // Also handle the case where quotes might be included
+  if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+    privateKey = privateKey.slice(1, -1);
+  }
+  
+  console.log('Creating GA4 client with email:', clientEmail);
+  console.log('Private key format check:', {
+    length: privateKey.length,
+    startsCorrectly: privateKey.startsWith('-----BEGIN PRIVATE KEY-----'),
+    endsCorrectly: privateKey.trimEnd().endsWith('-----END PRIVATE KEY-----'),
+  });
+  
   const credentials = {
-    client_email: process.env.GA4_CLIENT_EMAIL,
-    private_key: process.env.GA4_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    client_email: clientEmail,
+    private_key: privateKey,
   };
 
   return new BetaAnalyticsDataClient({ credentials });
