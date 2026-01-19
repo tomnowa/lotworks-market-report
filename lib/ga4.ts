@@ -110,7 +110,8 @@ export async function fetchMapLoads(
     const path = row.dimensionValues?.[1]?.value || '';
     const views = parseInt(row.metricValues?.[0]?.value || '0', 10);
 
-    if (community && community !== '(not set)') {
+    // Exclude treetracking paths and invalid entries
+    if (community && community !== '(not set)' && !path.toLowerCase().includes('treetracking')) {
       results.push({ community, path, mapLoads: views });
       total += views;
     }
@@ -129,7 +130,10 @@ export async function fetchLotClicks(
   const [response] = await client.runReport({
     property: `properties/${PROPERTY_ID}`,
     dateRanges: [{ startDate, endDate }],
-    dimensions: [{ name: 'customEvent:c_community' }],
+    dimensions: [
+      { name: 'customEvent:c_community' },
+      { name: 'customEvent:c_urlpath' },
+    ],
     metrics: [{ name: 'eventCount' }],
     dimensionFilter: {
       andGroup: {
@@ -150,21 +154,28 @@ export async function fetchLotClicks(
       },
     },
     orderBys: [{ metric: { metricName: 'eventCount' }, desc: true }],
-    limit: 100,
+    limit: 500,
   });
 
-  const results: { community: string; lotClicks: number }[] = [];
+  // Aggregate by community, excluding treetracking paths
+  const communityTotals: Record<string, number> = {};
   let total = 0;
 
   for (const row of response.rows || []) {
     const community = row.dimensionValues?.[0]?.value || '';
+    const path = row.dimensionValues?.[1]?.value || '';
     const clicks = parseInt(row.metricValues?.[0]?.value || '0', 10);
 
-    if (community && community !== '(not set)') {
-      results.push({ community, lotClicks: clicks });
+    // Exclude treetracking paths
+    if (community && community !== '(not set)' && !path.toLowerCase().includes('treetracking')) {
+      communityTotals[community] = (communityTotals[community] || 0) + clicks;
       total += clicks;
     }
   }
+
+  const results = Object.entries(communityTotals)
+    .map(([community, lotClicks]) => ({ community, lotClicks }))
+    .sort((a, b) => b.lotClicks - a.lotClicks);
 
   return { total, byCommunity: results };
 }
@@ -183,6 +194,7 @@ export async function fetchTopLots(
     dimensions: [
       { name: 'customEvent:c_lot' },
       { name: 'customEvent:c_community' },
+      { name: 'customEvent:c_urlpath' },
     ],
     metrics: [{ name: 'eventCount' }],
     dimensionFilter: {
@@ -204,34 +216,42 @@ export async function fetchTopLots(
       },
     },
     orderBys: [{ metric: { metricName: 'eventCount' }, desc: true }],
-    limit,
+    limit: limit * 3, // Fetch more to account for filtered rows
   });
 
-  const results: TopLot[] = [];
+  // Aggregate by lot+community, excluding treetracking paths
+  const lotTotals: Record<string, { lot: string; community: string; clicks: number }> = {};
   let totalClicks = 0;
 
   for (const row of response.rows || []) {
-    totalClicks += parseInt(row.metricValues?.[0]?.value || '0', 10);
-  }
-
-  let rank = 1;
-  for (const row of response.rows || []) {
     const lot = row.dimensionValues?.[0]?.value || '';
     const community = row.dimensionValues?.[1]?.value || '';
+    const path = row.dimensionValues?.[2]?.value || '';
     const clicks = parseInt(row.metricValues?.[0]?.value || '0', 10);
 
-    if (lot && lot !== '(not set)' && lot !== '-') {
-      results.push({
-        rank: rank++,
-        lot,
-        community: community || 'Unknown',
-        clicks,
-        share: totalClicks > 0 ? Math.round((clicks / totalClicks) * 10000) / 100 : 0,
-      });
+    // Exclude treetracking paths and invalid lots
+    if (lot && lot !== '(not set)' && lot !== '-' && !path.toLowerCase().includes('treetracking')) {
+      const key = `${lot}|${community}`;
+      if (!lotTotals[key]) {
+        lotTotals[key] = { lot, community: community || 'Unknown', clicks: 0 };
+      }
+      lotTotals[key].clicks += clicks;
+      totalClicks += clicks;
     }
   }
 
-  return results;
+  // Sort and rank
+  const sortedLots = Object.values(lotTotals)
+    .sort((a, b) => b.clicks - a.clicks)
+    .slice(0, limit);
+
+  return sortedLots.map((item, index) => ({
+    rank: index + 1,
+    lot: item.lot,
+    community: item.community,
+    clicks: item.clicks,
+    share: totalClicks > 0 ? Math.round((item.clicks / totalClicks) * 10000) / 100 : 0,
+  }));
 }
 
 export async function fetchViewsOverTime(
@@ -247,6 +267,7 @@ export async function fetchViewsOverTime(
     dimensions: [
       { name: 'date' },
       { name: 'customEvent:c_community' },
+      { name: 'customEvent:c_urlpath' },
     ],
     metrics: [{ name: 'screenPageViews' }],
     dimensionFilter: {
@@ -264,7 +285,13 @@ export async function fetchViewsOverTime(
   for (const row of response.rows || []) {
     const dateStr = row.dimensionValues?.[0]?.value || '';
     const community = row.dimensionValues?.[1]?.value || '';
+    const path = row.dimensionValues?.[2]?.value || '';
     const views = parseInt(row.metricValues?.[0]?.value || '0', 10);
+
+    // Exclude treetracking paths
+    if (path.toLowerCase().includes('treetracking')) {
+      continue;
+    }
 
     const year = dateStr.slice(0, 4);
     const month = dateStr.slice(4, 6);
@@ -280,7 +307,9 @@ export async function fetchViewsOverTime(
       ? community.replace(/\s+/g, '').replace(/^./, (c) => c.toLowerCase())
       : 'other';
 
-    dateData[formattedDate][communityKey] = views;
+    // Aggregate views for same date+community (may have multiple paths)
+    const existingViews = (dateData[formattedDate][communityKey] as number) || 0;
+    dateData[formattedDate][communityKey] = existingViews + views;
     dateData[formattedDate].total = (dateData[formattedDate].total as number) + views;
   }
 
@@ -297,7 +326,10 @@ export async function fetchClicksByDayOfWeek(
   const [response] = await client.runReport({
     property: `properties/${PROPERTY_ID}`,
     dateRanges: [{ startDate, endDate }],
-    dimensions: [{ name: 'dayOfWeek' }],
+    dimensions: [
+      { name: 'dayOfWeek' },
+      { name: 'customEvent:c_urlpath' },
+    ],
     metrics: [{ name: 'eventCount' }],
     dimensionFilter: {
       andGroup: {
@@ -318,21 +350,28 @@ export async function fetchClicksByDayOfWeek(
       },
     },
     orderBys: [{ dimension: { dimensionName: 'dayOfWeek' }, desc: false }],
+    limit: 500,
   });
 
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const results: DayOfWeekData[] = [];
+  const dayTotals: Record<number, number> = {};
 
   for (const row of response.rows || []) {
     const dayIndex = parseInt(row.dimensionValues?.[0]?.value || '0', 10);
+    const path = row.dimensionValues?.[1]?.value || '';
     const clicks = parseInt(row.metricValues?.[0]?.value || '0', 10);
 
-    results.push({
-      day: dayNames[dayIndex] || 'Unknown',
-      clicks,
-      dayIndex,
-    });
+    // Exclude treetracking paths
+    if (!path.toLowerCase().includes('treetracking')) {
+      dayTotals[dayIndex] = (dayTotals[dayIndex] || 0) + clicks;
+    }
   }
+
+  const results: DayOfWeekData[] = Object.entries(dayTotals).map(([idx, clicks]) => ({
+    day: dayNames[parseInt(idx)] || 'Unknown',
+    clicks,
+    dayIndex: parseInt(idx),
+  }));
 
   // Sort by day index (0=Sunday through 6=Saturday), but reorder to start with Monday
   results.sort((a, b) => {
