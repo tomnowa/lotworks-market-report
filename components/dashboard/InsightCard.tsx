@@ -15,12 +15,14 @@ const bgColors = {
   trending: 'bg-emerald-50 border-emerald-200',
   hot: 'bg-orange-50 border-orange-200',
   opportunity: 'bg-blue-50 border-blue-200',
+  warning: 'bg-red-50 border-red-200',
 };
 
 const iconColors = {
   trending: 'text-emerald-600 bg-emerald-100',
   hot: 'text-orange-600 bg-orange-100',
   opportunity: 'text-blue-600 bg-blue-100',
+  warning: 'text-red-600 bg-red-100',
 };
 
 interface InsightCardProps {
