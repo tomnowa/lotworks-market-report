@@ -1,39 +1,66 @@
 import { BetaAnalyticsDataClient } from '@google-analytics/data';
 import type { MarketReport, CommunityPerformance, TopLot, ViewOverTime, Insight } from '@/types';
 
+// Service account credentials interface
+interface ServiceAccountCredentials {
+  type: string;
+  project_id: string;
+  private_key_id: string;
+  private_key: string;
+  client_email: string;
+  client_id: string;
+  auth_uri: string;
+  token_uri: string;
+}
+
 // Initialize GA4 client with environment variables
 function getClient() {
+  // Method 1: Base64-encoded full JSON (recommended for Vercel)
+  const base64Credentials = process.env.GOOGLE_SERVICE_ACCOUNT_BASE64;
+  
+  if (base64Credentials) {
+    try {
+      const jsonString = Buffer.from(base64Credentials, 'base64').toString('utf-8');
+      const credentials: ServiceAccountCredentials = JSON.parse(jsonString);
+      
+      console.log('Using base64-encoded service account');
+      console.log('Client email:', credentials.client_email);
+      console.log('Project ID:', credentials.project_id);
+      
+      return new BetaAnalyticsDataClient({
+        credentials: {
+          client_email: credentials.client_email,
+          private_key: credentials.private_key,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to parse base64 credentials:', error);
+      throw new Error('Invalid GOOGLE_SERVICE_ACCOUNT_BASE64 format');
+    }
+  }
+  
+  // Method 2: Separate environment variables (fallback)
   const clientEmail = process.env.GA4_CLIENT_EMAIL;
   let privateKey = process.env.GA4_PRIVATE_KEY;
   
   if (!clientEmail || !privateKey) {
-    throw new Error('GA4 credentials not configured');
+    throw new Error('GA4 credentials not configured. Set GOOGLE_SERVICE_ACCOUNT_BASE64 or both GA4_CLIENT_EMAIL and GA4_PRIVATE_KEY');
   }
   
   // Handle different private key formats
-  // Vercel might store it with literal \n or actual newlines
   if (privateKey.includes('\\n')) {
     privateKey = privateKey.replace(/\\n/g, '\n');
   }
   
-  // Also handle the case where quotes might be included
-  if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-    privateKey = privateKey.slice(1, -1);
-  }
+  console.log('Using separate env vars for credentials');
+  console.log('Client email:', clientEmail);
   
-  console.log('Creating GA4 client with email:', clientEmail);
-  console.log('Private key format check:', {
-    length: privateKey.length,
-    startsCorrectly: privateKey.startsWith('-----BEGIN PRIVATE KEY-----'),
-    endsCorrectly: privateKey.trimEnd().endsWith('-----END PRIVATE KEY-----'),
+  return new BetaAnalyticsDataClient({
+    credentials: {
+      client_email: clientEmail,
+      private_key: privateKey,
+    },
   });
-  
-  const credentials = {
-    client_email: clientEmail,
-    private_key: privateKey,
-  };
-
-  return new BetaAnalyticsDataClient({ credentials });
 }
 
 const PROPERTY_ID = process.env.GA4_PROPERTY_ID;

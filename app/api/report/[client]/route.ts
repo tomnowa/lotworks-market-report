@@ -17,6 +17,7 @@ export async function GET(
     
     // Check environment variables
     const propertyId = process.env.GA4_PROPERTY_ID;
+    const base64Credentials = process.env.GOOGLE_SERVICE_ACCOUNT_BASE64;
     const clientEmail = process.env.GA4_CLIENT_EMAIL;
     const privateKey = process.env.GA4_PRIVATE_KEY;
     
@@ -24,14 +25,13 @@ export async function GET(
     console.log('GA4 Config Check:', {
       hasPropertyId: !!propertyId,
       propertyId: propertyId,
+      hasBase64Credentials: !!base64Credentials,
+      base64CredentialsLength: base64Credentials?.length,
       hasClientEmail: !!clientEmail,
-      clientEmail: clientEmail,
       hasPrivateKey: !!privateKey,
-      privateKeyLength: privateKey?.length,
-      privateKeyStart: privateKey?.substring(0, 40),
     });
     
-    const hasCredentials = propertyId && clientEmail && privateKey;
+    const hasCredentials = propertyId && (base64Credentials || (clientEmail && privateKey));
     
     if (!hasCredentials) {
       console.log('Missing credentials, returning mock data');

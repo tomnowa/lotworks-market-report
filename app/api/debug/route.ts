@@ -2,16 +2,29 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   const propertyId = process.env.GA4_PROPERTY_ID;
+  const base64Credentials = process.env.GOOGLE_SERVICE_ACCOUNT_BASE64;
   const clientEmail = process.env.GA4_CLIENT_EMAIL;
   const privateKey = process.env.GA4_PRIVATE_KEY;
   
-  // Check if private key looks valid
-  const keyAnalysis = privateKey ? {
-    length: privateKey.length,
-    startsCorrectly: privateKey.startsWith('-----BEGIN'),
-    containsNewlines: privateKey.includes('\n'),
-    containsEscapedNewlines: privateKey.includes('\\n'),
-  } : null;
+  // Try to decode base64 credentials
+  let decodedCredentials = null;
+  if (base64Credentials) {
+    try {
+      const jsonString = Buffer.from(base64Credentials, 'base64').toString('utf-8');
+      const parsed = JSON.parse(jsonString);
+      decodedCredentials = {
+        valid: true,
+        client_email: parsed.client_email,
+        project_id: parsed.project_id,
+        has_private_key: !!parsed.private_key,
+      };
+    } catch (error) {
+      decodedCredentials = {
+        valid: false,
+        error: String(error),
+      };
+    }
+  }
   
   return NextResponse.json({
     timestamp: new Date().toISOString(),
@@ -21,19 +34,22 @@ export async function GET() {
         set: !!propertyId,
         value: propertyId || null,
       },
+      GOOGLE_SERVICE_ACCOUNT_BASE64: {
+        set: !!base64Credentials,
+        length: base64Credentials?.length || 0,
+        decoded: decodedCredentials,
+      },
       GA4_CLIENT_EMAIL: {
         set: !!clientEmail,
         value: clientEmail || null,
       },
       GA4_PRIVATE_KEY: {
         set: !!privateKey,
-        analysis: keyAnalysis,
-        // Show first and last bit to verify format
-        preview: privateKey 
-          ? `${privateKey.substring(0, 50)}...${privateKey.substring(privateKey.length - 30)}`
-          : null,
+        length: privateKey?.length || 0,
+        startsCorrectly: privateKey?.startsWith('-----BEGIN') || false,
       },
     },
-    allConfigured: !!(propertyId && clientEmail && privateKey),
+    recommendedSetup: 'Use GOOGLE_SERVICE_ACCOUNT_BASE64 for Vercel deployments',
+    allConfigured: !!(propertyId && (base64Credentials || (clientEmail && privateKey))),
   });
 }
