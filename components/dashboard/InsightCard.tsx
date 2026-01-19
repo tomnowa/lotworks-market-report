@@ -1,6 +1,6 @@
 'use client';
 
-import { TrendingUp, Target, Layers } from 'lucide-react';
+import { Target, Layers } from 'lucide-react';
 import type { Insight } from '@/types';
 import { TrendingUp, Flame, Lightbulb, AlertTriangle } from 'lucide-react';
 
