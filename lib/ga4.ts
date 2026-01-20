@@ -190,30 +190,55 @@ export async function fetchTopLots(
 ): Promise<TopLot[]> {
   const client = getClient();
 
-  // Build dimension filter expressions
-  const filterExpressions = [
-    {
-      filter: {
-        fieldName: 'customEvent:c_client',
-        stringFilter: { matchType: 'EXACT' as const, value: clientName },
-      },
-    },
-    {
-      filter: {
-        fieldName: 'customEvent:c_category',
-        stringFilter: { matchType: 'EXACT' as const, value: 'maps-openInfoWin' },
-      },
-    },
-  ];
-
-  // Add community filter if specified
+  // Build dimension filter - structure differs based on whether we have community filter
+  let dimensionFilter;
+  
   if (communities && communities.length > 0) {
-    filterExpressions.push({
-      filter: {
-        fieldName: 'customEvent:c_community',
-        inListFilter: { values: communities },
+    // With community filter - use andGroup with all three filters
+    dimensionFilter = {
+      andGroup: {
+        expressions: [
+          {
+            filter: {
+              fieldName: 'customEvent:c_client',
+              stringFilter: { matchType: 'EXACT' as const, value: clientName },
+            },
+          },
+          {
+            filter: {
+              fieldName: 'customEvent:c_category',
+              stringFilter: { matchType: 'EXACT' as const, value: 'maps-openInfoWin' },
+            },
+          },
+          {
+            filter: {
+              fieldName: 'customEvent:c_community',
+              inListFilter: { values: communities },
+            },
+          },
+        ],
       },
-    } as typeof filterExpressions[0]);
+    };
+  } else {
+    // Without community filter - just client and category
+    dimensionFilter = {
+      andGroup: {
+        expressions: [
+          {
+            filter: {
+              fieldName: 'customEvent:c_client',
+              stringFilter: { matchType: 'EXACT' as const, value: clientName },
+            },
+          },
+          {
+            filter: {
+              fieldName: 'customEvent:c_category',
+              stringFilter: { matchType: 'EXACT' as const, value: 'maps-openInfoWin' },
+            },
+          },
+        ],
+      },
+    };
   }
 
   const [response] = await client.runReport({
@@ -225,11 +250,7 @@ export async function fetchTopLots(
       { name: 'customEvent:c_urlpath' },
     ],
     metrics: [{ name: 'eventCount' }],
-    dimensionFilter: {
-      andGroup: {
-        expressions: filterExpressions,
-      },
-    },
+    dimensionFilter,
     orderBys: [{ metric: { metricName: 'eventCount' }, desc: true }],
     limit: limit * 3, // Fetch more to account for filtered rows
   });
