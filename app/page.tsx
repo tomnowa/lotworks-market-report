@@ -34,7 +34,7 @@ import {
   Menu,
   X,
   Filter,
-  Sparkles,
+  Bot,
 } from 'lucide-react';
 import {
   LineChart,
@@ -276,10 +276,9 @@ function StatCard({
           ? 'bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 text-white shadow-lg border border-slate-700' 
           : 'bg-white border border-slate-200 shadow-sm hover:border-slate-300'
       }`}
-      title={tooltip}
     >
       {tooltip && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 max-w-xs text-center">
+        <div className="absolute bottom-full left-0 right-0 mb-2 mx-1 px-3 py-2 bg-slate-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 text-center">
           {tooltip}
           <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
         </div>
@@ -861,6 +860,10 @@ function OverviewContent({ report }: { report: MarketReport }) {
   
   const [selectedCommunities, setSelectedCommunities] = useState<string[]>([]);
   
+  // Map Load Trend Legend Logic:
+  // - topCommunities: Top 8 communities by map loads (displayed in legend)
+  // - selectedCommunities: Top 5 enabled by default on chart load
+  // - Users can click legend buttons to toggle visibility
   const topCommunities = useMemo(() => 
     [...communityPerf]
       .sort((a, b) => b.mapLoads - a.mapLoads)
@@ -911,28 +914,28 @@ function OverviewContent({ report }: { report: MarketReport }) {
           change={report.summary?.mapLoadsChange}
           icon={Eye}
           accent
-          tooltip="Total number of times your interactive maps were loaded by visitors"
+          tooltip="Times your maps were loaded"
         />
         <StatCard
           title="Lot Clicks"
           value={report.summary?.totalLotClicks ?? 0}
           change={report.summary?.lotClicksChange}
           icon={MousePointerClick}
-          tooltip="Total clicks on individual lots to view details or availability"
+          tooltip="Clicks on lots for details"
         />
         <StatCard
           title="Avg. Time on Map"
           value={report.summary?.avgTimeOnMap || '—'}
           change={report.summary?.avgTimeChange}
           icon={Clock}
-          tooltip="Average time visitors spend interacting with your maps"
+          tooltip="Average session duration"
         />
         <StatCard
           title="Click Rate"
           value={`${(report.summary?.clickThroughRate ?? 0).toFixed(1)}%`}
           change={report.summary?.clickRateChange}
           icon={Target}
-          tooltip="Percentage of map viewers who clicked on at least one lot"
+          tooltip="% of viewers who clicked a lot"
         />
       </div>
 
@@ -941,7 +944,7 @@ function OverviewContent({ report }: { report: MarketReport }) {
         <div>
           <div className="flex items-center gap-2 mb-4">
             <div className="p-1.5 rounded-lg bg-gradient-to-br from-lime-400 to-emerald-500">
-              <Sparkles className="w-4 h-4 text-slate-900" />
+              <Bot className="w-4 h-4 text-slate-900" />
             </div>
             <h2 className="text-lg font-bold text-slate-800">LotWorks AI Insights</h2>
           </div>
@@ -1151,6 +1154,7 @@ function MapDetailsContent({
             label: 'Map Loads',
             align: 'right',
             sortable: true,
+            width: '120px',
             render: (item) => (
               <span 
                 className="inline-block px-2.5 py-1 rounded-md text-sm font-semibold"
@@ -1165,6 +1169,7 @@ function MapDetailsContent({
             label: 'Lot Clicks',
             align: 'right',
             sortable: true,
+            width: '120px',
             render: (item) => (
               <span 
                 className="inline-block px-2.5 py-1 rounded-md text-sm font-semibold"
@@ -1179,7 +1184,7 @@ function MapDetailsContent({
             label: 'CTR',
             align: 'right',
             sortable: true,
-            width: '80px',
+            width: '100px',
             render: (item) => (
               <span className={`font-semibold ${
                 item.ctr >= 20 ? 'text-emerald-600' : item.ctr >= 10 ? 'text-amber-600' : 'text-slate-500'
@@ -1545,19 +1550,24 @@ function Sidebar({
       
       {/* Footer section with collapse toggle */}
       <div className="border-t border-slate-100 bg-slate-50/50">
-        {/* Collapse Toggle */}
+        {/* Collapse Toggle - styled like tab buttons */}
         <div className="p-3">
           <button
             onClick={onToggleCollapse}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-slate-500 hover:text-slate-700 hover:bg-white rounded-lg transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group text-slate-600 hover:bg-slate-50 hover:text-slate-800"
+            title={collapsed ? 'Expand' : undefined}
           >
-            {collapsed ? (
-              <ChevronRight className="w-4 h-4" />
-            ) : (
-              <>
-                <ChevronLeft className="w-4 h-4" />
-                <span className="text-xs">Collapse</span>
-              </>
+            <div className="p-2 rounded-lg transition-colors bg-slate-100 group-hover:bg-slate-200">
+              {collapsed ? (
+                <ChevronRight className="w-4 h-4 text-slate-500" />
+              ) : (
+                <ChevronLeft className="w-4 h-4 text-slate-500" />
+              )}
+            </div>
+            {!collapsed && (
+              <div className="flex-1 text-left">
+                <div className="text-sm font-semibold">Collapse</div>
+              </div>
             )}
           </button>
         </div>
