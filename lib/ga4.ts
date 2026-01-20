@@ -8,6 +8,7 @@ import type {
   DayOfWeekData,
   DeviceData,
   CountryData,
+  CityData,
   BrowserData,
   OperatingSystemData,
   TrafficSource
@@ -184,9 +185,36 @@ export async function fetchTopLots(
   clientName: string,
   startDate: string,
   endDate: string,
-  limit: number = 25
+  limit: number = 25,
+  communities?: string[]
 ): Promise<TopLot[]> {
   const client = getClient();
+
+  // Build dimension filter expressions
+  const filterExpressions = [
+    {
+      filter: {
+        fieldName: 'customEvent:c_client',
+        stringFilter: { matchType: 'EXACT' as const, value: clientName },
+      },
+    },
+    {
+      filter: {
+        fieldName: 'customEvent:c_category',
+        stringFilter: { matchType: 'EXACT' as const, value: 'maps-openInfoWin' },
+      },
+    },
+  ];
+
+  // Add community filter if specified
+  if (communities && communities.length > 0) {
+    filterExpressions.push({
+      filter: {
+        fieldName: 'customEvent:c_community',
+        inListFilter: { values: communities },
+      },
+    } as typeof filterExpressions[0]);
+  }
 
   const [response] = await client.runReport({
     property: `properties/${PROPERTY_ID}`,
@@ -199,20 +227,7 @@ export async function fetchTopLots(
     metrics: [{ name: 'eventCount' }],
     dimensionFilter: {
       andGroup: {
-        expressions: [
-          {
-            filter: {
-              fieldName: 'customEvent:c_client',
-              stringFilter: { matchType: 'EXACT', value: clientName },
-            },
-          },
-          {
-            filter: {
-              fieldName: 'customEvent:c_category',
-              stringFilter: { matchType: 'EXACT', value: 'maps-openInfoWin' },
-            },
-          },
-        ],
+        expressions: filterExpressions,
       },
     },
     orderBys: [{ metric: { metricName: 'eventCount' }, desc: true }],
@@ -463,6 +478,108 @@ export async function fetchCountryBreakdown(
   }));
 }
 
+// Major city coordinates for mapping
+const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
+  // North America
+  'New York': { lat: 40.7128, lng: -74.0060 },
+  'Los Angeles': { lat: 34.0522, lng: -118.2437 },
+  'Chicago': { lat: 41.8781, lng: -87.6298 },
+  'Houston': { lat: 29.7604, lng: -95.3698 },
+  'Phoenix': { lat: 33.4484, lng: -112.0740 },
+  'Toronto': { lat: 43.6532, lng: -79.3832 },
+  'Vancouver': { lat: 49.2827, lng: -123.1207 },
+  'Montreal': { lat: 45.5017, lng: -73.5673 },
+  'Calgary': { lat: 51.0447, lng: -114.0719 },
+  'Edmonton': { lat: 53.5461, lng: -113.4938 },
+  'Ottawa': { lat: 45.4215, lng: -75.6972 },
+  'Winnipeg': { lat: 49.8951, lng: -97.1384 },
+  'Mexico City': { lat: 19.4326, lng: -99.1332 },
+  'San Francisco': { lat: 37.7749, lng: -122.4194 },
+  'Seattle': { lat: 47.6062, lng: -122.3321 },
+  'Denver': { lat: 39.7392, lng: -104.9903 },
+  'Dallas': { lat: 32.7767, lng: -96.7970 },
+  'Miami': { lat: 25.7617, lng: -80.1918 },
+  'Atlanta': { lat: 33.7490, lng: -84.3880 },
+  'Boston': { lat: 42.3601, lng: -71.0589 },
+  // Europe
+  'London': { lat: 51.5074, lng: -0.1278 },
+  'Paris': { lat: 48.8566, lng: 2.3522 },
+  'Berlin': { lat: 52.5200, lng: 13.4050 },
+  'Madrid': { lat: 40.4168, lng: -3.7038 },
+  'Rome': { lat: 41.9028, lng: 12.4964 },
+  'Amsterdam': { lat: 52.3676, lng: 4.9041 },
+  // Asia Pacific
+  'Tokyo': { lat: 35.6762, lng: 139.6503 },
+  'Sydney': { lat: -33.8688, lng: 151.2093 },
+  'Melbourne': { lat: -37.8136, lng: 144.9631 },
+  'Singapore': { lat: 1.3521, lng: 103.8198 },
+  'Hong Kong': { lat: 22.3193, lng: 114.1694 },
+  'Mumbai': { lat: 19.0760, lng: 72.8777 },
+  'Delhi': { lat: 28.7041, lng: 77.1025 },
+  'Shanghai': { lat: 31.2304, lng: 121.4737 },
+  'Beijing': { lat: 39.9042, lng: 116.4074 },
+  'Seoul': { lat: 37.5665, lng: 126.9780 },
+  // South America
+  'São Paulo': { lat: -23.5505, lng: -46.6333 },
+  'Buenos Aires': { lat: -34.6037, lng: -58.3816 },
+  'Rio de Janeiro': { lat: -22.9068, lng: -43.1729 },
+};
+
+export async function fetchCityBreakdown(
+  clientName: string,
+  startDate: string,
+  endDate: string
+): Promise<CityData[]> {
+  const client = getClient();
+
+  const [response] = await client.runReport({
+    property: `properties/${PROPERTY_ID}`,
+    dateRanges: [{ startDate, endDate }],
+    dimensions: [
+      { name: 'city' },
+      { name: 'country' },
+    ],
+    metrics: [{ name: 'activeUsers' }],
+    dimensionFilter: {
+      filter: {
+        fieldName: 'customEvent:c_client',
+        stringFilter: { matchType: 'EXACT', value: clientName },
+      },
+    },
+    orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
+    limit: 100,
+  });
+
+  let totalUsers = 0;
+  const rawData: { city: string; country: string; users: number }[] = [];
+
+  for (const row of response.rows || []) {
+    const city = row.dimensionValues?.[0]?.value || '';
+    const country = row.dimensionValues?.[1]?.value || '';
+    const users = parseInt(row.metricValues?.[0]?.value || '0', 10);
+
+    // Skip entries without a valid city name
+    if (city && city !== '(not set)' && users > 0) {
+      totalUsers += users;
+      rawData.push({ city, country, users });
+    }
+  }
+
+  return rawData.map(d => {
+    // Try to find coordinates for the city
+    const coords = CITY_COORDINATES[d.city] || { lat: 0, lng: 0 };
+    
+    return {
+      city: d.city,
+      country: d.country,
+      lat: coords.lat,
+      lng: coords.lng,
+      users: d.users,
+      percentage: totalUsers > 0 ? Math.round((d.users / totalUsers) * 1000) / 10 : 0,
+    };
+  });
+}
+
 export async function fetchBrowserBreakdown(
   clientName: string,
   startDate: string,
@@ -706,6 +823,7 @@ export async function buildFullReport(
     clicksByDayOfWeek,
     deviceBreakdown,
     countryBreakdown,
+    cityBreakdown,
     browserBreakdown,
     osBreakdown,
     trafficSources,
@@ -718,6 +836,7 @@ export async function buildFullReport(
     fetchClicksByDayOfWeek(clientName, startDate, endDate),
     fetchDeviceBreakdown(clientName, startDate, endDate),
     fetchCountryBreakdown(clientName, startDate, endDate),
+    fetchCityBreakdown(clientName, startDate, endDate),
     fetchBrowserBreakdown(clientName, startDate, endDate),
     fetchOSBreakdown(clientName, startDate, endDate),
     fetchTrafficSources(clientName, startDate, endDate),
@@ -795,6 +914,7 @@ export async function buildFullReport(
     clicksByDayOfWeek,
     deviceBreakdown,
     countryBreakdown,
+    cityBreakdown,
     browserBreakdown,
     osBreakdown,
     trafficSources,

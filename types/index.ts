@@ -67,6 +67,15 @@ export interface CountryData {
   percentage: number;
 }
 
+export interface CityData {
+  city: string;
+  country: string;
+  lat: number;
+  lng: number;
+  users: number;
+  percentage: number;
+}
+
 export interface BrowserData {
   browser: string;
   users: number;
@@ -102,6 +111,7 @@ export interface MarketReport {
   clicksByDayOfWeek: DayOfWeekData[];
   deviceBreakdown: DeviceData[];
   countryBreakdown: CountryData[];
+  cityBreakdown: CityData[];
   browserBreakdown: BrowserData[];
   osBreakdown: OperatingSystemData[];
   trafficSources: TrafficSource[];
