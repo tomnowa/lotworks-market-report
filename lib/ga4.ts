@@ -659,10 +659,9 @@ function generateInsights(
   // Hot lot insight
   if (topLots.length > 0) {
     const hotLot = topLots[0];
-    const lotName = hotLot.lot.split(',')[0];
     insights.push({
       type: 'hot',
-      title: `${lotName} is generating strong interest`,
+      title: `${hotLot.lot} is generating strong interest`,
       description: `This lot in ${hotLot.community} received ${hotLot.clicks} clicks (${hotLot.share}% of total), indicating high buyer demand.`,
     });
   }
@@ -714,7 +713,7 @@ export async function buildFullReport(
   ] = await Promise.all([
     fetchMapLoads(clientName, startDate, endDate),
     fetchLotClicks(clientName, startDate, endDate),
-    fetchTopLots(clientName, startDate, endDate, 25),
+    fetchTopLots(clientName, startDate, endDate, 50),
     fetchViewsOverTime(clientName, startDate, endDate),
     fetchClicksByDayOfWeek(clientName, startDate, endDate),
     fetchDeviceBreakdown(clientName, startDate, endDate),

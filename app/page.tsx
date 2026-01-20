@@ -33,6 +33,9 @@ import {
   PieChart as PieChartIcon,
   Menu,
   X,
+  Filter,
+  Globe,
+  Sparkles,
 } from 'lucide-react';
 import {
   LineChart,
@@ -47,7 +50,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from 'recharts';
 import type { MarketReport, CommunityPerformance, TopLot } from '@/types';
 
@@ -67,6 +69,26 @@ const DEVICE_COLORS: Record<string, string> = {
   Mobile: '#3b82f6',
   Desktop: '#ef4444',
   Tablet: '#f59e0b',
+};
+
+// Country codes for world map
+const COUNTRY_CODES: Record<string, string> = {
+  'United States': 'US',
+  'Canada': 'CA',
+  'Mexico': 'MX',
+  'United Kingdom': 'GB',
+  'Germany': 'DE',
+  'France': 'FR',
+  'Spain': 'ES',
+  'Italy': 'IT',
+  'Australia': 'AU',
+  'Brazil': 'BR',
+  'India': 'IN',
+  'China': 'CN',
+  'Japan': 'JP',
+  'South Korea': 'KR',
+  'Netherlands': 'NL',
+  'Other': 'OTHER',
 };
 
 type TabId = 'overview' | 'details' | 'analytics';
@@ -213,19 +235,27 @@ function EmptyState({ message = "No data available" }: { message?: string }) {
   );
 }
 
-function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ color: string; name: string; value: number }>; label?: string }) {
+function ChartTooltipWithPercent({ active, payload, label, showPercent = false }: { active?: boolean; payload?: Array<{ color: string; name: string; value: number; payload?: Record<string, unknown> }>; label?: string; showPercent?: boolean }) {
   if (!active || !payload?.length) return null;
   
   return (
     <div className="bg-slate-900 text-white px-4 py-3 rounded-lg shadow-2xl border border-slate-700 max-w-xs">
       <p className="font-semibold text-sm mb-2 text-slate-200">{label}</p>
-      {payload.map((entry, i) => (
-        <div key={i} className="flex items-center gap-2 text-sm py-0.5">
-          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
-          <span className="text-slate-400 truncate">{entry.name}:</span>
-          <span className="font-bold ml-auto">{entry.value?.toLocaleString()}</span>
-        </div>
-      ))}
+      {payload.map((entry, i) => {
+        const percentage = entry.payload?.percentage;
+        return (
+          <div key={i} className="flex items-center gap-2 text-sm py-0.5">
+            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
+            <span className="text-slate-400 truncate">{entry.name}:</span>
+            <span className="font-bold ml-auto">
+              {entry.value?.toLocaleString()}
+              {showPercent && percentage !== undefined && (
+                <span className="text-slate-400 ml-1">({percentage}%)</span>
+              )}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -318,7 +348,8 @@ function ChartCard({
   children, 
   isEmpty = false,
   className = "",
-  height = "h-64"
+  height = "h-64",
+  action
 }: { 
   title: string; 
   subtitle?: string; 
@@ -326,12 +357,206 @@ function ChartCard({
   isEmpty?: boolean;
   className?: string;
   height?: string;
+  action?: React.ReactNode;
 }) {
   return (
     <div className={`bg-white rounded-2xl border border-slate-200 p-6 shadow-sm ${className}`}>
-      <SectionHeader title={title} subtitle={subtitle} />
+      <SectionHeader title={title} subtitle={subtitle} action={action} />
       <div className={height}>
         {isEmpty ? <EmptyState /> : children}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// WORLD MAP COMPONENT
+// ============================================================================
+
+function WorldMap({ data }: { data: { country: string; users: number; percentage: number }[] }) {
+  const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
+  
+  const countryData = useMemo(() => {
+    const map: Record<string, { users: number; percentage: number }> = {};
+    data.forEach(d => {
+      const code = COUNTRY_CODES[d.country] || d.country.slice(0, 2).toUpperCase();
+      map[code] = { users: d.users, percentage: d.percentage };
+    });
+    return map;
+  }, [data]);
+
+  const maxUsers = Math.max(...data.map(d => d.users), 1);
+
+  const getCountryColor = (code: string) => {
+    const country = countryData[code];
+    if (!country) return '#e2e8f0';
+    const intensity = Math.min(country.users / maxUsers, 1);
+    const alpha = 0.2 + (intensity * 0.6);
+    return `rgba(16, 185, 129, ${alpha})`;
+  };
+
+  const getCountryName = (code: string) => {
+    return Object.entries(COUNTRY_CODES).find(([, c]) => c === code)?.[0] || code;
+  };
+
+  return (
+    <div className="relative w-full h-full">
+      <svg viewBox="0 0 1000 500" className="w-full h-full">
+        {/* Simplified world map paths */}
+        {/* North America */}
+        <path
+          d="M150,120 L280,100 L320,140 L300,200 L250,240 L200,220 L150,180 Z"
+          fill={getCountryColor('US')}
+          stroke="#94a3b8"
+          strokeWidth="0.5"
+          onMouseEnter={() => setHoveredCountry('US')}
+          onMouseLeave={() => setHoveredCountry(null)}
+          className="cursor-pointer transition-all hover:opacity-80"
+        />
+        <path
+          d="M150,60 L280,50 L300,100 L280,100 L150,120 Z"
+          fill={getCountryColor('CA')}
+          stroke="#94a3b8"
+          strokeWidth="0.5"
+          onMouseEnter={() => setHoveredCountry('CA')}
+          onMouseLeave={() => setHoveredCountry(null)}
+          className="cursor-pointer transition-all hover:opacity-80"
+        />
+        <path
+          d="M180,240 L250,240 L270,300 L200,310 L160,280 Z"
+          fill={getCountryColor('MX')}
+          stroke="#94a3b8"
+          strokeWidth="0.5"
+          onMouseEnter={() => setHoveredCountry('MX')}
+          onMouseLeave={() => setHoveredCountry(null)}
+          className="cursor-pointer transition-all hover:opacity-80"
+        />
+        {/* South America */}
+        <path
+          d="M270,320 L320,340 L310,450 L260,470 L240,400 L250,340 Z"
+          fill={getCountryColor('BR')}
+          stroke="#94a3b8"
+          strokeWidth="0.5"
+          onMouseEnter={() => setHoveredCountry('BR')}
+          onMouseLeave={() => setHoveredCountry(null)}
+          className="cursor-pointer transition-all hover:opacity-80"
+        />
+        {/* Europe */}
+        <path
+          d="M440,100 L470,95 L480,130 L450,140 Z"
+          fill={getCountryColor('GB')}
+          stroke="#94a3b8"
+          strokeWidth="0.5"
+          onMouseEnter={() => setHoveredCountry('GB')}
+          onMouseLeave={() => setHoveredCountry(null)}
+          className="cursor-pointer transition-all hover:opacity-80"
+        />
+        <path
+          d="M460,140 L490,135 L500,170 L470,175 Z"
+          fill={getCountryColor('FR')}
+          stroke="#94a3b8"
+          strokeWidth="0.5"
+          onMouseEnter={() => setHoveredCountry('FR')}
+          onMouseLeave={() => setHoveredCountry(null)}
+          className="cursor-pointer transition-all hover:opacity-80"
+        />
+        <path
+          d="M490,120 L540,115 L550,160 L500,165 Z"
+          fill={getCountryColor('DE')}
+          stroke="#94a3b8"
+          strokeWidth="0.5"
+          onMouseEnter={() => setHoveredCountry('DE')}
+          onMouseLeave={() => setHoveredCountry(null)}
+          className="cursor-pointer transition-all hover:opacity-80"
+        />
+        <path
+          d="M450,175 L490,170 L500,210 L460,215 Z"
+          fill={getCountryColor('ES')}
+          stroke="#94a3b8"
+          strokeWidth="0.5"
+          onMouseEnter={() => setHoveredCountry('ES')}
+          onMouseLeave={() => setHoveredCountry(null)}
+          className="cursor-pointer transition-all hover:opacity-80"
+        />
+        <path
+          d="M500,170 L530,165 L540,210 L510,215 Z"
+          fill={getCountryColor('IT')}
+          stroke="#94a3b8"
+          strokeWidth="0.5"
+          onMouseEnter={() => setHoveredCountry('IT')}
+          onMouseLeave={() => setHoveredCountry(null)}
+          className="cursor-pointer transition-all hover:opacity-80"
+        />
+        {/* Asia */}
+        <path
+          d="M650,140 L780,120 L820,200 L750,250 L680,230 L640,180 Z"
+          fill={getCountryColor('CN')}
+          stroke="#94a3b8"
+          strokeWidth="0.5"
+          onMouseEnter={() => setHoveredCountry('CN')}
+          onMouseLeave={() => setHoveredCountry(null)}
+          className="cursor-pointer transition-all hover:opacity-80"
+        />
+        <path
+          d="M600,200 L680,180 L700,280 L640,300 L580,260 Z"
+          fill={getCountryColor('IN')}
+          stroke="#94a3b8"
+          strokeWidth="0.5"
+          onMouseEnter={() => setHoveredCountry('IN')}
+          onMouseLeave={() => setHoveredCountry(null)}
+          className="cursor-pointer transition-all hover:opacity-80"
+        />
+        <path
+          d="M820,140 L860,130 L870,200 L830,210 Z"
+          fill={getCountryColor('JP')}
+          stroke="#94a3b8"
+          strokeWidth="0.5"
+          onMouseEnter={() => setHoveredCountry('JP')}
+          onMouseLeave={() => setHoveredCountry(null)}
+          className="cursor-pointer transition-all hover:opacity-80"
+        />
+        <path
+          d="M800,180 L830,175 L840,210 L810,215 Z"
+          fill={getCountryColor('KR')}
+          stroke="#94a3b8"
+          strokeWidth="0.5"
+          onMouseEnter={() => setHoveredCountry('KR')}
+          onMouseLeave={() => setHoveredCountry(null)}
+          className="cursor-pointer transition-all hover:opacity-80"
+        />
+        {/* Australia */}
+        <path
+          d="M780,350 L880,340 L900,420 L820,440 L760,400 Z"
+          fill={getCountryColor('AU')}
+          stroke="#94a3b8"
+          strokeWidth="0.5"
+          onMouseEnter={() => setHoveredCountry('AU')}
+          onMouseLeave={() => setHoveredCountry(null)}
+          className="cursor-pointer transition-all hover:opacity-80"
+        />
+        {/* Africa (simplified) */}
+        <path
+          d="M480,220 L560,210 L580,320 L520,380 L460,340 L450,260 Z"
+          fill="#e2e8f0"
+          stroke="#94a3b8"
+          strokeWidth="0.5"
+        />
+      </svg>
+      
+      {/* Tooltip */}
+      {hoveredCountry && countryData[hoveredCountry] && (
+        <div className="absolute top-4 right-4 bg-slate-900 text-white px-4 py-3 rounded-lg shadow-2xl">
+          <div className="font-semibold">{getCountryName(hoveredCountry)}</div>
+          <div className="text-sm text-slate-300">
+            {countryData[hoveredCountry].users.toLocaleString()} users ({countryData[hoveredCountry].percentage}%)
+          </div>
+        </div>
+      )}
+      
+      {/* Legend */}
+      <div className="absolute bottom-2 left-2 flex items-center gap-2 text-xs text-slate-500">
+        <Globe className="w-3.5 h-3.5" />
+        <span>Hover for details</span>
       </div>
     </div>
   );
@@ -553,6 +778,88 @@ function ClientSelector({
 }
 
 // ============================================================================
+// COMMUNITY FILTER
+// ============================================================================
+
+function CommunityFilter({
+  communities,
+  selected,
+  onChange,
+}: {
+  communities: string[];
+  selected: string[];
+  onChange: (communities: string[]) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const toggleCommunity = (community: string) => {
+    if (selected.includes(community)) {
+      onChange(selected.filter(c => c !== community));
+    } else {
+      onChange([...selected, community]);
+    }
+  };
+
+  const clearAll = () => onChange([]);
+  const selectAll = () => onChange([...communities]);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+          selected.length > 0
+            ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+            : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'
+        }`}
+      >
+        <Filter className="w-3.5 h-3.5" />
+        {selected.length === 0 ? 'Filter' : `${selected.length} selected`}
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="p-2 border-b border-slate-100 flex gap-2">
+              <button
+                onClick={selectAll}
+                className="flex-1 text-xs py-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+              >
+                Select All
+              </button>
+              <button
+                onClick={clearAll}
+                className="flex-1 text-xs py-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                Clear All
+              </button>
+            </div>
+            <div className="max-h-64 overflow-y-auto p-2">
+              {communities.map(community => (
+                <label
+                  key={community}
+                  className="flex items-center gap-2 px-2 py-2 hover:bg-slate-50 rounded-lg cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(community)}
+                    onChange={() => toggleCommunity(community)}
+                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm text-slate-700 truncate">{community}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
 // DATA TABLE
 // ============================================================================
 
@@ -561,7 +868,8 @@ function DataTable<T extends object>({
   columns, 
   title,
   subtitle,
-  itemsPerPage = ITEMS_PER_PAGE 
+  itemsPerPage = ITEMS_PER_PAGE,
+  filterComponent,
 }: { 
   data: T[]; 
   columns: { 
@@ -575,6 +883,7 @@ function DataTable<T extends object>({
   title: string;
   subtitle?: string;
   itemsPerPage?: number;
+  filterComponent?: React.ReactNode;
 }) {
   const [page, setPage] = useState(0);
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -615,8 +924,13 @@ function DataTable<T extends object>({
     return (
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
-          <h3 className="text-base font-bold text-slate-800">{title}</h3>
-          {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-bold text-slate-800">{title}</h3>
+              {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
+            </div>
+            {filterComponent}
+          </div>
         </div>
         <EmptyState message="No data to display" />
       </div>
@@ -631,9 +945,12 @@ function DataTable<T extends object>({
             <h3 className="text-base font-bold text-slate-800">{title}</h3>
             {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
           </div>
-          <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
-            {data.length} total
-          </span>
+          <div className="flex items-center gap-3">
+            {filterComponent}
+            <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+              {data.length} total
+            </span>
+          </div>
         </div>
       </div>
       
@@ -733,10 +1050,34 @@ function OverviewContent({ report }: { report: MarketReport }) {
   const communityPerf = report.communityPerformance || [];
   const devices = report.deviceBreakdown || [];
   
-  const topCommunities = [...communityPerf]
-    .sort((a, b) => b.mapLoads - a.mapLoads)
-    .slice(0, 6)
-    .map(c => c.name);
+  const [selectedCommunities, setSelectedCommunities] = useState<string[]>([]);
+  
+  const topCommunities = useMemo(() => 
+    [...communityPerf]
+      .sort((a, b) => b.mapLoads - a.mapLoads)
+      .slice(0, 8)
+      .map(c => c.name),
+    [communityPerf]
+  );
+  
+  // Initialize selected communities when data loads
+  useEffect(() => {
+    if (topCommunities.length > 0 && selectedCommunities.length === 0) {
+      setSelectedCommunities(topCommunities.slice(0, 5));
+    }
+  }, [topCommunities, selectedCommunities.length]);
+  
+  const visibleCommunities = selectedCommunities.length > 0 ? selectedCommunities : topCommunities.slice(0, 5);
+
+  const handleLegendClick = (community: string) => {
+    setSelectedCommunities(prev => {
+      if (prev.includes(community)) {
+        return prev.filter(c => c !== community);
+      } else {
+        return [...prev, community];
+      }
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -769,12 +1110,14 @@ function OverviewContent({ report }: { report: MarketReport }) {
         />
       </div>
 
-      {/* AI Insights */}
+      {/* LotWorks AI Insights */}
       {insights.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <h2 className="text-lg font-bold text-slate-800">AI Insights</h2>
+            <div className="p-1.5 rounded-lg bg-gradient-to-br from-lime-400 to-emerald-500">
+              <Sparkles className="w-4 h-4 text-slate-900" />
+            </div>
+            <h2 className="text-lg font-bold text-slate-800">LotWorks AI Insights</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {insights.slice(0, 4).map((insight, i) => (
@@ -784,39 +1127,71 @@ function OverviewContent({ report }: { report: MarketReport }) {
         </div>
       )}
 
-      {/* Map Load Trend */}
-      <ChartCard 
-        title="Map Load Trend" 
-        subtitle="Daily views by community"
-        isEmpty={viewsData.length === 0}
-        height="h-80"
-      >
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={viewsData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
-            <Tooltip content={<ChartTooltip />} />
-            <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
-            <Line type="monotone" dataKey="total" name="Total" stroke="#0f172a" strokeWidth={2.5} dot={false} />
-            {topCommunities.slice(0, 5).map((community, i) => {
-              const key = community.replace(/\s+/g, '').replace(/^./, c => c.toLowerCase());
-              return (
-                <Line 
-                  key={community}
-                  type="monotone" 
-                  dataKey={key}
-                  name={community}
-                  stroke={CHART_COLORS[i % CHART_COLORS.length]} 
-                  strokeWidth={1.5} 
-                  dot={false}
-                  strokeOpacity={0.8}
+      {/* Map Load Trend - No Total line, clickable legend */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-bold text-slate-800">Map Load Trend</h2>
+            <p className="text-sm text-slate-500">Click community names to show/hide</p>
+          </div>
+        </div>
+        
+        {/* Custom Legend */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {topCommunities.map((community, i) => {
+            const isActive = visibleCommunities.includes(community);
+            return (
+              <button
+                key={community}
+                onClick={() => handleLegendClick(community)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-all ${
+                  isActive
+                    ? 'bg-white border-2 shadow-sm'
+                    : 'bg-slate-100 border-2 border-transparent opacity-50'
+                }`}
+                style={{ borderColor: isActive ? CHART_COLORS[i % CHART_COLORS.length] : 'transparent' }}
+              >
+                <span
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
                 />
-              );
-            })}
-          </LineChart>
-        </ResponsiveContainer>
-      </ChartCard>
+                <span className={isActive ? 'text-slate-800' : 'text-slate-500'}>{community}</span>
+              </button>
+            );
+          })}
+        </div>
+        
+        <div className="h-80">
+          {viewsData.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={viewsData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
+                <Tooltip content={<ChartTooltipWithPercent />} />
+                {topCommunities.map((community, i) => {
+                  const key = community.replace(/\s+/g, '').replace(/^./, c => c.toLowerCase());
+                  const isVisible = visibleCommunities.includes(community);
+                  return (
+                    <Line 
+                      key={community}
+                      type="monotone" 
+                      dataKey={key}
+                      name={community}
+                      stroke={CHART_COLORS[i % CHART_COLORS.length]} 
+                      strokeWidth={isVisible ? 2 : 0}
+                      dot={false}
+                      strokeOpacity={isVisible ? 1 : 0}
+                    />
+                  );
+                })}
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
 
       {/* Quick Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -852,16 +1227,34 @@ function OverviewContent({ report }: { report: MarketReport }) {
 function MapDetailsContent({ report }: { report: MarketReport }) {
   const communityPerf = report.communityPerformance || [];
   const topLots = report.topLots || [];
-  const viewsData = report.viewsOverTime || [];
+  
+  const [selectedCommunities, setSelectedCommunities] = useState<string[]>([]);
   
   const maxLoads = Math.max(...communityPerf.map(c => c.mapLoads), 1);
   const maxClicks = Math.max(...communityPerf.map(c => c.lotClicks), 1);
-  const maxLotClicks = Math.max(...topLots.map(l => l.clicks), 1);
   
-  const topCommunities = [...communityPerf]
-    .sort((a, b) => b.mapLoads - a.mapLoads)
-    .slice(0, 8)
-    .map(c => c.name);
+  const communities = useMemo(() => 
+    [...communityPerf]
+      .sort((a, b) => b.mapLoads - a.mapLoads)
+      .map(c => c.name),
+    [communityPerf]
+  );
+  
+  // Filter lots by selected communities
+  const filteredLots = useMemo(() => {
+    if (selectedCommunities.length === 0) return topLots;
+    return topLots.filter(lot => selectedCommunities.includes(lot.community));
+  }, [topLots, selectedCommunities]);
+  
+  // Recalculate ranks for filtered lots
+  const rankedFilteredLots = useMemo(() => {
+    return filteredLots.map((lot, index) => ({
+      ...lot,
+      rank: index + 1,
+    }));
+  }, [filteredLots]);
+  
+  const maxLotClicks = Math.max(...rankedFilteredLots.map(l => l.clicks), 1);
 
   return (
     <div className="space-y-6">
@@ -926,11 +1319,21 @@ function MapDetailsContent({ report }: { report: MarketReport }) {
         ]}
       />
 
-      {/* Lot Click Ranking */}
+      {/* Lot Click Ranking with Community Filter */}
       <DataTable<TopLot>
         title="Lot Click Ranking"
-        subtitle={`${topLots.length} lots tracked`}
-        data={topLots}
+        subtitle={selectedCommunities.length > 0 
+          ? `Showing ${rankedFilteredLots.length} lots from ${selectedCommunities.length} communities`
+          : `Top 50 lots tracked`
+        }
+        data={rankedFilteredLots}
+        filterComponent={
+          <CommunityFilter
+            communities={communities}
+            selected={selectedCommunities}
+            onChange={setSelectedCommunities}
+          />
+        }
         columns={[
           {
             key: 'rank',
@@ -982,40 +1385,6 @@ function MapDetailsContent({ report }: { report: MarketReport }) {
           }
         ]}
       />
-
-      {/* Views Over Time Detail Chart */}
-      <ChartCard 
-        title="Views Over Time" 
-        subtitle="Detailed breakdown by community"
-        isEmpty={viewsData.length === 0}
-        height="h-96"
-      >
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={viewsData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#64748b' }} tickLine={false} />
-            <YAxis tick={{ fontSize: 10, fill: '#64748b' }} tickLine={false} axisLine={false} />
-            <Tooltip content={<ChartTooltip />} />
-            <Legend wrapperStyle={{ fontSize: 10, paddingTop: 10 }} />
-            <Line type="monotone" dataKey="total" name="Total" stroke="#0f172a" strokeWidth={2.5} dot={false} />
-            {topCommunities.map((community, i) => {
-              const key = community.replace(/\s+/g, '').replace(/^./, c => c.toLowerCase());
-              return (
-                <Line 
-                  key={community}
-                  type="monotone" 
-                  dataKey={key}
-                  name={community}
-                  stroke={CHART_COLORS[i % CHART_COLORS.length]} 
-                  strokeWidth={1.5} 
-                  dot={false}
-                  strokeOpacity={0.8}
-                />
-              );
-            })}
-          </LineChart>
-        </ResponsiveContainer>
-      </ChartCard>
     </div>
   );
 }
@@ -1033,6 +1402,13 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
   const traffic = report.trafficSources || [];
   
   const maxDayClicks = Math.max(...clicksByDay.map(d => d.clicks), 1);
+  const totalDayClicks = clicksByDay.reduce((sum, d) => sum + d.clicks, 0);
+  
+  // Add percentage to day data for tooltip
+  const clicksByDayWithPercent = clicksByDay.map(d => ({
+    ...d,
+    percentage: totalDayClicks > 0 ? Math.round((d.clicks / totalDayClicks) * 1000) / 10 : 0,
+  }));
 
   return (
     <div className="space-y-6">
@@ -1045,7 +1421,7 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
           height="h-72"
         >
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={clicksByDay}>
+            <BarChart data={clicksByDayWithPercent}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
               <XAxis 
                 dataKey="day" 
@@ -1054,9 +1430,9 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
                 tickFormatter={v => v?.slice(0, 3)}
               />
               <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
-              <Tooltip content={<ChartTooltip />} />
+              <Tooltip content={<ChartTooltipWithPercent showPercent />} />
               <Bar dataKey="clicks" name="Clicks" radius={[4, 4, 0, 0]}>
-                {clicksByDay.map((entry, i) => (
+                {clicksByDayWithPercent.map((entry, i) => (
                   <Cell key={i} fill={getHeatmapColor(entry.clicks, maxDayClicks, 'green')} stroke="#10b981" strokeWidth={1} />
                 ))}
               </Bar>
@@ -1108,8 +1484,17 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
         </ChartCard>
       </div>
 
-      {/* Row 2: Countries + Browsers */}
+      {/* Row 2: World Map + Countries */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ChartCard 
+          title="Users by Region" 
+          subtitle="Geographic distribution"
+          isEmpty={countries.length === 0}
+          height="h-72"
+        >
+          <WorldMap data={countries} />
+        </ChartCard>
+
         <ChartCard title="Top Countries" isEmpty={countries.length === 0} height="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={countries.slice(0, 6)} layout="vertical">
@@ -1123,12 +1508,15 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
                 axisLine={false} 
                 width={90}
               />
-              <Tooltip content={<ChartTooltip />} />
+              <Tooltip content={<ChartTooltipWithPercent showPercent />} />
               <Bar dataKey="users" name="Users" fill="#3b82f6" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
+      </div>
 
+      {/* Row 3: Browsers + OS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartCard title="Browser Usage" isEmpty={browsers.length === 0} height="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={browsers.slice(0, 6)} layout="vertical">
@@ -1142,15 +1530,12 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
                 axisLine={false} 
                 width={70}
               />
-              <Tooltip content={<ChartTooltip />} />
+              <Tooltip content={<ChartTooltipWithPercent showPercent />} />
               <Bar dataKey="users" name="Users" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
-      </div>
 
-      {/* Row 3: OS + Traffic */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* OS Breakdown */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
           <SectionHeader title="Operating System" subtitle="User platform distribution" />
@@ -1174,34 +1559,29 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
             ))}
           </div>
         </div>
+      </div>
 
-        {/* Traffic Sources */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          <SectionHeader title="Traffic Sources" subtitle="Where visitors come from" />
-          {traffic.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="space-y-3">
-              {traffic.slice(0, 6).map((t, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-slate-800 truncate">{t.source}</div>
-                    <div className="text-xs text-slate-500">{t.medium}</div>
-                  </div>
-                  <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-blue-500 rounded-full" 
-                      style={{ width: `${Math.min(t.percentage, 100)}%` }} 
-                    />
-                  </div>
-                  <span className="w-20 text-sm text-slate-600 text-right font-medium">
-                    {t.sessions.toLocaleString()}
-                  </span>
+      {/* Traffic Sources */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <SectionHeader title="Traffic Sources" subtitle="Where visitors come from" />
+        {traffic.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {traffic.slice(0, 6).map((t, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-slate-800 truncate">{t.source}</div>
+                  <div className="text-xs text-slate-500">{t.medium}</div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                <div className="text-right">
+                  <div className="font-bold text-slate-800">{t.sessions.toLocaleString()}</div>
+                  <div className="text-xs text-slate-500">{t.percentage}%</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1215,12 +1595,14 @@ function Sidebar({
   activeTab, 
   onTabChange,
   collapsed,
-  onToggleCollapse
+  onToggleCollapse,
+  lastUpdated,
 }: { 
   activeTab: TabId; 
   onTabChange: (tab: TabId) => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
+  lastUpdated: Date | null;
 }) {
   return (
     <aside className={`bg-white border-r border-slate-200 flex flex-col transition-all duration-300 ${
@@ -1282,21 +1664,44 @@ function Sidebar({
         })}
       </nav>
       
-      {/* Collapse Toggle */}
-      <div className="p-3 border-t border-slate-100">
-        <button
-          onClick={onToggleCollapse}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
-        >
-          {collapsed ? (
-            <ChevronRight className="w-4 h-4" />
+      {/* Footer section with collapse toggle */}
+      <div className="border-t border-slate-100 bg-slate-50/50">
+        {/* Collapse Toggle */}
+        <div className="p-3">
+          <button
+            onClick={onToggleCollapse}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-slate-500 hover:text-slate-700 hover:bg-white rounded-lg transition-colors"
+          >
+            {collapsed ? (
+              <ChevronRight className="w-4 h-4" />
+            ) : (
+              <>
+                <ChevronLeft className="w-4 h-4" />
+                <span className="text-xs">Collapse</span>
+              </>
+            )}
+          </button>
+        </div>
+        
+        {/* Powered by section */}
+        <div className="px-4 py-3 border-t border-slate-100">
+          {!collapsed ? (
+            <div className="space-y-1">
+              <div className="text-xs text-slate-500">
+                Powered by <span className="font-semibold text-slate-700">LotWorks</span>
+              </div>
+              {lastUpdated && (
+                <div className="text-[10px] text-slate-400">
+                  Updated {lastUpdated.toLocaleTimeString()}
+                </div>
+              )}
+            </div>
           ) : (
-            <>
-              <ChevronLeft className="w-4 h-4" />
-              <span className="text-xs">Collapse</span>
-            </>
+            <div className="text-center" title={lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : undefined}>
+              <Clock className="w-4 h-4 text-slate-400 mx-auto" />
+            </div>
           )}
-        </button>
+        </div>
       </div>
     </aside>
   );
@@ -1310,19 +1715,21 @@ function MobileNav({
   activeTab, 
   onTabChange,
   isOpen,
-  onClose
+  onClose,
+  lastUpdated,
 }: { 
   activeTab: TabId; 
   onTabChange: (tab: TabId) => void;
   isOpen: boolean;
   onClose: () => void;
+  lastUpdated: Date | null;
 }) {
   if (!isOpen) return null;
   
   return (
     <>
       <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />
-      <div className="fixed inset-y-0 left-0 w-72 bg-white shadow-2xl z-50 lg:hidden animate-in slide-in-from-left duration-300">
+      <div className="fixed inset-y-0 left-0 w-72 bg-white shadow-2xl z-50 lg:hidden animate-in slide-in-from-left duration-300 flex flex-col">
         <div className="h-16 border-b border-slate-100 flex items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-lime-400 to-emerald-500 flex items-center justify-center">
@@ -1338,7 +1745,7 @@ function MobileNav({
           </button>
         </div>
         
-        <nav className="p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2">
           {TABS.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -1362,6 +1769,18 @@ function MobileNav({
             );
           })}
         </nav>
+        
+        {/* Footer */}
+        <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-3">
+          <div className="text-xs text-slate-500">
+            Powered by <span className="font-semibold text-slate-700">LotWorks</span>
+          </div>
+          {lastUpdated && (
+            <div className="text-[10px] text-slate-400 mt-1">
+              Updated {lastUpdated.toLocaleTimeString()}
+            </div>
+          )}
+        </div>
       </div>
     </>
   );
@@ -1501,12 +1920,13 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* Desktop Sidebar */}
-      <div className="hidden lg:block">
+      <div className="hidden lg:flex">
         <Sidebar 
           activeTab={activeTab} 
           onTabChange={setActiveTab}
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          lastUpdated={lastUpdated}
         />
       </div>
       
@@ -1516,6 +1936,7 @@ export default function Dashboard() {
         onTabChange={setActiveTab}
         isOpen={mobileNavOpen}
         onClose={() => setMobileNavOpen(false)}
+        lastUpdated={lastUpdated}
       />
       
       {/* Main Content */}
@@ -1586,11 +2007,6 @@ export default function Dashboard() {
             </h1>
             <p className="text-slate-500 text-sm mt-1">
               {report.organization?.name} • {report.dateRange?.start} – {report.dateRange?.end}
-              {lastUpdated && (
-                <span className="text-slate-400 ml-2">
-                  • Updated {lastUpdated.toLocaleTimeString()}
-                </span>
-              )}
             </p>
           </div>
           
@@ -1599,14 +2015,6 @@ export default function Dashboard() {
           {activeTab === 'details' && <MapDetailsContent report={report} />}
           {activeTab === 'analytics' && <AnalyticsContent report={report} />}
         </main>
-        
-        {/* Footer */}
-        <footer className="bg-white border-t border-slate-200 py-3 px-4 lg:px-6">
-          <div className="flex items-center justify-between text-xs text-slate-500">
-            <span>Powered by <span className="font-semibold text-slate-700">LotWorks</span></span>
-            <span>Data excludes tree tracking maps</span>
-          </div>
-        </footer>
       </div>
     </div>
   );
