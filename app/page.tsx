@@ -242,16 +242,16 @@ function ChartTooltipWithPercent({ active, payload, label, showPercent = false }
     <div className="bg-slate-900 text-white px-4 py-3 rounded-lg shadow-2xl border border-slate-700 max-w-xs">
       <p className="font-semibold text-sm mb-2 text-slate-200">{label}</p>
       {payload.map((entry, i) => {
-        const percentage = entry.payload?.percentage;
+        const percentage = entry.payload?.percentage as number | undefined;
         return (
           <div key={i} className="flex items-center gap-2 text-sm py-0.5">
             <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
             <span className="text-slate-400 truncate">{entry.name}:</span>
             <span className="font-bold ml-auto">
               {entry.value?.toLocaleString()}
-              {showPercent && percentage !== undefined && (
+              {showPercent && typeof percentage === 'number' ? (
                 <span className="text-slate-400 ml-1">({percentage}%)</span>
-              )}
+              ) : null}
             </span>
           </div>
         );
