@@ -1412,7 +1412,7 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
             {osList.slice(0, 6).map((os, i) => (
               <div key={i} className="flex items-center gap-3">
                 <span className="w-20 text-sm text-slate-700 font-medium truncate" title={os.os}>{os.os}</span>
-                <div className="flex-1 max-w-[200px] h-3 bg-slate-100 rounded-full overflow-hidden">
+                <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all"
                     style={{
@@ -1421,7 +1421,7 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
                     }}
                   />
                 </div>
-                <span className="w-20 text-sm text-slate-600 text-right">
+                <span className="w-24 text-sm text-slate-600 text-right">
                   {formatCompactNumber(os.users)} <span className="text-slate-400">({os.percentage}%)</span>
                 </span>
               </div>
@@ -1500,8 +1500,8 @@ function Sidebar({
               <BarChart3 className="w-4 h-4 text-slate-900" />
             </div>
             <div>
-              <div className="font-bold text-slate-800 text-sm">LotWorks</div>
-              <div className="text-[10px] text-slate-400 uppercase tracking-wider">Market Report</div>
+              <div className="font-bold text-slate-800 text-sm">LotWorks Insights</div>
+              <div className="text-[10px] text-slate-400 uppercase tracking-wider">Website Market Report</div>
             </div>
           </div>
         )}
