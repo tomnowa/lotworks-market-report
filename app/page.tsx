@@ -1506,7 +1506,7 @@ function Sidebar({
         {!collapsed && (
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-              <svg width="20" height="13" viewBox="0 0 64 42" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-9 h-6">
+              <svg width="20" height="13" viewBox="0 0 52 42" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-10 h-6.5">
                 <path d="M13.6111 0L0 5.17937L16.8565 42H25.2778L13.6111 0Z" fill="#192A54"/>
                 <path d="M30.5278 23.5278L33.8333 9.52778L40.8333 35.1726H35.7377L30.5278 23.5278Z" fill="#192A54"/>
                 <path d="M21 22.5556L25.6667 39.2778L33.1009 7.53369L23.0247 11.2063L21 22.5556Z" fill="#4B5FD7"/>
