@@ -14,6 +14,7 @@ export interface DateRange {
 export interface Summary {
   totalMapLoads: number;
   totalLotClicks: number;
+  totalLotsWithClicks: number;
   clickThroughRate: number;
   topCommunity: string;
   avgTimeOnMap?: string;

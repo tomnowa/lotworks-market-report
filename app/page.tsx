@@ -914,28 +914,28 @@ function OverviewContent({ report }: { report: MarketReport }) {
           change={report.summary?.mapLoadsChange}
           icon={Eye}
           accent
-          tooltip="Times your maps were loaded"
+          tooltip="Number of times your maps were loaded"
         />
         <StatCard
           title="Lot Clicks"
           value={report.summary?.totalLotClicks ?? 0}
           change={report.summary?.lotClicksChange}
           icon={MousePointerClick}
-          tooltip="Clicks on lots for details"
+          tooltip="Number of clicks on lots for details"
         />
         <StatCard
           title="Avg. Time on Map"
           value={report.summary?.avgTimeOnMap || '—'}
           change={report.summary?.avgTimeChange}
           icon={Clock}
-          tooltip="Average session duration"
+          tooltip="Average time spent on your maps"
         />
         <StatCard
           title="Click Rate"
           value={`${(report.summary?.clickThroughRate ?? 0).toFixed(1)}%`}
           change={report.summary?.clickRateChange}
           icon={Target}
-          tooltip="% of viewers who clicked a lot"
+          tooltip="Percentage of viewers who clicked a lot"
         />
       </div>
 
@@ -1029,7 +1029,7 @@ function OverviewContent({ report }: { report: MarketReport }) {
           <div className="text-sm text-slate-500 mt-1">Active Communities</div>
         </div>
         <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-          <div className="text-3xl font-bold text-slate-800">{(report.topLots || []).length}</div>
+          <div className="text-3xl font-bold text-slate-800">{report.summary?.totalLotsWithClicks || 0}</div>
           <div className="text-sm text-slate-500 mt-1">Lots with Clicks</div>
         </div>
         <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm bg-gradient-to-br from-emerald-50 to-white">
@@ -1154,7 +1154,7 @@ function MapDetailsContent({
             label: 'Map Loads',
             align: 'right',
             sortable: true,
-            width: '120px',
+            width: '140px',
             render: (item) => (
               <span 
                 className="inline-block px-2.5 py-1 rounded-md text-sm font-semibold"
@@ -1168,8 +1168,8 @@ function MapDetailsContent({
             key: 'lotClicks',
             label: 'Lot Clicks',
             align: 'right',
-            sortable: true,
-            width: '120px',
+            sortable: true,  
+            width: '140px',
             render: (item) => (
               <span 
                 className="inline-block px-2.5 py-1 rounded-md text-sm font-semibold"

@@ -192,7 +192,7 @@ export async function fetchTopLots(
 
   // Build dimension filter - structure differs based on whether we have community filter
   let dimensionFilter;
-  
+
   if (communities && communities.length > 0) {
     // With community filter - use andGroup with all three filters
     dimensionFilter = {
@@ -288,6 +288,97 @@ export async function fetchTopLots(
     clicks: item.clicks,
     share: totalClicks > 0 ? Math.round((item.clicks / totalClicks) * 10000) / 100 : 0,
   }));
+}
+
+export async function fetchTotalLotsWithClicks(
+  clientName: string,
+  startDate: string,
+  endDate: string,
+  communities?: string[]
+): Promise<number> {
+  const client = getClient();
+
+  // Build dimension filter - structure differs based on whether we have community filter
+  let dimensionFilter;
+
+  if (communities && communities.length > 0) {
+    // With community filter - use andGroup with all three filters
+    dimensionFilter = {
+      andGroup: {
+        expressions: [
+          {
+            filter: {
+              fieldName: 'customEvent:c_client',
+              stringFilter: { matchType: 'EXACT' as const, value: clientName },
+            },
+          },
+          {
+            filter: {
+              fieldName: 'customEvent:c_category',
+              stringFilter: { matchType: 'EXACT' as const, value: 'maps-openInfoWin' },
+            },
+          },
+          {
+            filter: {
+              fieldName: 'customEvent:c_community',
+              inListFilter: { values: communities },
+            },
+          },
+        ],
+      },
+    };
+  } else {
+    // Without community filter - just client and category
+    dimensionFilter = {
+      andGroup: {
+        expressions: [
+          {
+            filter: {
+              fieldName: 'customEvent:c_client',
+              stringFilter: { matchType: 'EXACT' as const, value: clientName },
+            },
+          },
+          {
+            filter: {
+              fieldName: 'customEvent:c_category',
+              stringFilter: { matchType: 'EXACT' as const, value: 'maps-openInfoWin' },
+            },
+          },
+        ],
+      },
+    };
+  }
+
+  const [response] = await client.runReport({
+    property: `properties/${PROPERTY_ID}`,
+    dateRanges: [{ startDate, endDate }],
+    dimensions: [
+      { name: 'customEvent:c_lot' },
+      { name: 'customEvent:c_community' },
+      { name: 'customEvent:c_urlpath' },
+    ],
+    metrics: [{ name: 'eventCount' }],
+    dimensionFilter,
+    limit: 50000, // High limit to get all lots with clicks
+  });
+
+  // Aggregate by lot+community to count unique lots with clicks, excluding treetracking paths
+  const uniqueLots: Set<string> = new Set();
+
+  for (const row of response.rows || []) {
+    const lot = row.dimensionValues?.[0]?.value || '';
+    const community = row.dimensionValues?.[1]?.value || '';
+    const path = row.dimensionValues?.[2]?.value || '';
+    const clicks = parseInt(row.metricValues?.[0]?.value || '0', 10);
+
+    // Exclude treetracking paths and invalid lots, and only count lots with actual clicks
+    if (lot && lot !== '(not set)' && lot !== '-' && !path.toLowerCase().includes('treetracking') && clicks > 0) {
+      const key = `${lot}|${community}`;
+      uniqueLots.add(key);
+    }
+  }
+
+  return uniqueLots.size;
 }
 
 export async function fetchViewsOverTime(
@@ -837,9 +928,10 @@ export async function buildFullReport(
 ): Promise<MarketReport> {
   // Fetch all data in parallel
   const [
-    mapLoads, 
-    lotClicks, 
-    topLots, 
+    mapLoads,
+    lotClicks,
+    topLots,
+    totalLotsWithClicks,
     viewsOverTime,
     clicksByDayOfWeek,
     deviceBreakdown,
@@ -853,6 +945,7 @@ export async function buildFullReport(
     fetchMapLoads(clientName, startDate, endDate),
     fetchLotClicks(clientName, startDate, endDate),
     fetchTopLots(clientName, startDate, endDate, 50),
+    fetchTotalLotsWithClicks(clientName, startDate, endDate),
     fetchViewsOverTime(clientName, startDate, endDate),
     fetchClicksByDayOfWeek(clientName, startDate, endDate),
     fetchDeviceBreakdown(clientName, startDate, endDate),
@@ -925,6 +1018,7 @@ export async function buildFullReport(
     summary: {
       totalMapLoads,
       totalLotClicks,
+      totalLotsWithClicks,
       clickThroughRate: ctr,
       topCommunity,
       avgTimeOnMap,
