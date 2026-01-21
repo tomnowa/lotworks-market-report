@@ -888,9 +888,13 @@ function generateInsights(
   // Hot lot insight
   if (topLots.length > 0) {
     const hotLot = topLots[0];
+    // Remove community name from lot string since it's shown separately in description
+    const lotWithoutCommunity = hotLot.lot
+      .replace(new RegExp(`,?\\s*${hotLot.community.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*,?`, 'gi'), '')
+      .trim();
     insights.push({
       type: 'hot',
-      title: `${hotLot.lot} is generating strong interest`,
+      title: `${lotWithoutCommunity} is generating strong interest`,
       description: `This lot in ${hotLot.community} received ${hotLot.clicks} clicks (${hotLot.share}% of total), indicating high buyer demand.`,
     });
   }
