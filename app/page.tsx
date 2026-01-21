@@ -88,7 +88,7 @@ type TabId = 'overview' | 'details' | 'analytics';
 interface TabConfig {
   id: TabId;
   label: string;
-  icon: React.ElementType;
+  icon: string;
   description: string;
 }
 
@@ -628,7 +628,7 @@ function CommunityFilter({
       >
         <Icon path={mdiFilter} size={0.875} />
         {selected.length === 0 ? 'Filter' : `${selected.length} selected`}
-        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <Icon path={mdiChevronDown} size={0.875} style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
       </button>
 
       {isOpen && (
