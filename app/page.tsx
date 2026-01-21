@@ -1236,8 +1236,7 @@ function MapDetailsContent({
             render: (item) => (
               <div className="font-medium text-slate-800">
                 <div className="truncate max-w-[200px] md:max-w-[300px]" title={`${item.lot}`}>
-                  {item.lot}
-                  <span className="hidden md:inline text-slate-500 ml-1">- {item.community}</span>
+                  {item.lot}                  
                 </div>
               </div>
             )
