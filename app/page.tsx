@@ -1218,8 +1218,12 @@ function MapDetailsContent({
             width: '60px',
             render: (item) => (
               <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold ${
-                item.rank <= 3 
-                  ? 'bg-gradient-to-br from-lime-400 to-emerald-500 text-slate-900' 
+                item.rank === 1
+                  ? 'bg-gradient-to-br from-yellow-400 to-amber-500 text-slate-900'
+                  : item.rank === 2
+                  ? 'bg-gradient-to-br from-slate-300 to-slate-400 text-slate-700'
+                  : item.rank === 3
+                  ? 'bg-gradient-to-br from-amber-600 to-orange-500 text-white'
                   : 'bg-slate-100 text-slate-600'
               }`}>
                 {item.rank}
@@ -1230,12 +1234,18 @@ function MapDetailsContent({
             key: 'lot',
             label: 'Lot',
             render: (item) => (
-              <div className="font-medium text-slate-800 truncate max-w-[200px]" title={item.lot}>{item.lot}</div>
+              <div className="font-medium text-slate-800">
+                <div className="truncate max-w-[200px] md:max-w-[300px]" title={`${item.lot} - ${item.community}`}>
+                  {item.lot}
+                  <span className="hidden md:inline text-slate-500 ml-1">- {item.community}</span>
+                </div>
+              </div>
             )
           },
           {
             key: 'community',
             label: 'Community',
+            className: 'hidden md:table-cell',
             render: (item) => <span className="text-slate-600 truncate block max-w-[150px]" title={item.community}>{item.community}</span>
           },
           {
