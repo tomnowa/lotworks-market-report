@@ -55,8 +55,17 @@ import {
 import type { MarketReport, CommunityPerformance, TopLot } from '@/types';
 import dynamic from 'next/dynamic';
 
-// Dynamic import for map to avoid SSR issues with Leaflet
-const CityMap = dynamic(() => import('@/components/CityMap'), { 
+// Dynamic import for maps to avoid SSR issues with Leaflet
+const CityMap = dynamic(() => import('@/components/CityMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-slate-100 rounded-lg">
+      <div className="text-slate-400 text-sm">Loading map...</div>
+    </div>
+  )
+});
+
+const CountryMap = dynamic(() => import('@/components/CountryMap'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full flex items-center justify-center bg-slate-100 rounded-lg">
@@ -288,7 +297,7 @@ function StatCard({
       )}
       <div className="flex items-start justify-between mb-3">
         <div className={`p-2.5 rounded-xl ${accent ? 'bg-lime-400/20' : 'bg-emerald-50'}`}>
-          <Icon path={iconPath} size={1} color={accent ? '#ffffff' : '#4B5FD7'} />
+          <Icon path={iconPath} size={1} color={accent ? '#DBDB34' : '#4B5FD7'} />
         </div>
         {hasChange && (
           <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg ${
@@ -1300,10 +1309,14 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
   const browsers = report.browserBreakdown || [];
   const osList = report.osBreakdown || [];
   const traffic = report.trafficSources || [];
-  
+
+  // Pagination state for cities chart
+  const [citiesPage, setCitiesPage] = useState(0);
+  const CITIES_PER_PAGE = 12; // Show 12 cities per page (doubled from 6)
+
   const maxDayClicks = Math.max(...clicksByDay.map(d => d.clicks), 1);
   const totalDayClicks = clicksByDay.reduce((sum, d) => sum + d.clicks, 0);
-  
+
   // Add percentage to day data for tooltip
   const clicksByDayWithPercent = clicksByDay.map(d => ({
     ...d,
@@ -1386,23 +1399,48 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
 
       {/* Row 2: Countries + Browsers */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Top Countries" isEmpty={countries.length === 0} height="h-72">
+        <ChartCard title="Top Cities" isEmpty={cities.length === 0} height="h-[144]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={countries.slice(0, 6)} layout="vertical">
+            <BarChart
+              data={cities.slice(citiesPage * CITIES_PER_PAGE, (citiesPage + 1) * CITIES_PER_PAGE)}
+              layout="vertical"
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 10, fill: '#64748b' }} tickLine={false} />
-              <YAxis 
-                type="category" 
-                dataKey="country" 
-                tick={{ fontSize: 11, fill: '#64748b' }} 
-                tickLine={false} 
-                axisLine={false} 
+              <YAxis
+                type="category"
+                dataKey="city"
+                tick={{ fontSize: 11, fill: '#64748b' }}
+                tickLine={false}
+                axisLine={false}
                 width={90}
               />
               <Tooltip content={<ChartTooltipWithPercent showPercent />} />
               <Bar dataKey="users" name="Users" fill="#3b82f6" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
+          {/* Pagination Controls */}
+          {cities.length > CITIES_PER_PAGE && (
+            <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t border-slate-100">
+              <button
+                onClick={() => setCitiesPage(p => Math.max(0, p - 1))}
+                disabled={citiesPage === 0}
+                className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <Icon path={mdiChevronLeft} size={1} />
+              </button>
+              <span className="px-3 py-1 text-sm font-medium text-slate-700 bg-slate-50 rounded-lg">
+                {citiesPage + 1} / {Math.ceil(cities.length / CITIES_PER_PAGE)}
+              </span>
+              <button
+                onClick={() => setCitiesPage(p => Math.min(Math.ceil(cities.length / CITIES_PER_PAGE) - 1, p + 1))}
+                disabled={citiesPage >= Math.ceil(cities.length / CITIES_PER_PAGE) - 1}
+                className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <Icon path={mdiChevronRight} size={1} />
+              </button>
+            </div>
+          )}
         </ChartCard>
 
         <ChartCard title="Browser Usage" isEmpty={browsers.length === 0} height="h-72">
@@ -1453,7 +1491,7 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
 
         {/* Traffic Sources */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          <SectionHeader title="Traffic Sources" subtitle="Where visitors come from" />
+          <SectionHeader title="Traffic Sources" subtitle="Where visitors came from" />
           {traffic.length === 0 ? (
             <EmptyState />
           ) : (
@@ -1475,17 +1513,17 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
         </div>
       </div>
 
-      {/* Row 4: Full-width Active Users by City Map */}
+      {/* Row 4: Full-width Active Users by Country Map */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-        <SectionHeader 
-          title="Active Users by City" 
-          subtitle={`${cities.length} cities tracked`}
+        <SectionHeader
+          title="Active Users by Country"
+          subtitle={`${countries.length} countries tracked`}
         />
         <div className="h-[450px]">
-          {cities.length === 0 ? (
-            <EmptyState message="No city data available" />
+          {countries.length === 0 ? (
+            <EmptyState message="No country data available" />
           ) : (
-            <CityMap data={cities} />
+            <CountryMap data={countries} />
           )}
         </div>
       </div>
