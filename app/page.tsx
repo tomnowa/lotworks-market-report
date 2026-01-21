@@ -1314,6 +1314,30 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
   const [citiesPage, setCitiesPage] = useState(0);
   const CITIES_PER_PAGE = 12; // Show 12 cities per page (doubled from 6)
 
+  // Debug: Add mock cities data in development if none exists
+  const mockCities = [
+    { city: 'New York', country: 'United States', lat: 40.7128, lng: -74.0060, users: 1250, percentage: 15.2 },
+    { city: 'Los Angeles', country: 'United States', lat: 34.0522, lng: -118.2437, users: 980, percentage: 11.9 },
+    { city: 'London', country: 'United Kingdom', lat: 51.5074, lng: -0.1278, users: 756, percentage: 9.2 },
+    { city: 'Toronto', country: 'Canada', lat: 43.6532, lng: -79.3832, users: 623, percentage: 7.6 },
+    { city: 'Chicago', country: 'United States', lat: 41.8781, lng: -87.6298, users: 589, percentage: 7.1 },
+    { city: 'Vancouver', country: 'Canada', lat: 49.2827, lng: -123.1207, users: 445, percentage: 5.4 },
+    { city: 'Sydney', country: 'Australia', lat: -33.8688, lng: 151.2093, users: 398, percentage: 4.8 },
+    { city: 'Berlin', country: 'Germany', lat: 52.5200, lng: 13.4050, users: 356, percentage: 4.3 },
+    { city: 'Paris', country: 'France', lat: 48.8566, lng: 2.3522, users: 312, percentage: 3.8 },
+    { city: 'Melbourne', country: 'Australia', lat: -37.8136, lng: 144.9631, users: 289, percentage: 3.5 },
+    { city: 'Amsterdam', country: 'Netherlands', lat: 52.3676, lng: 4.9041, users: 267, percentage: 3.2 },
+    { city: 'Tokyo', country: 'Japan', lat: 35.6762, lng: 139.6503, users: 234, percentage: 2.8 },
+    { city: 'Seattle', country: 'United States', lat: 47.6062, lng: -122.3321, users: 198, percentage: 2.4 },
+    { city: 'Montreal', country: 'Canada', lat: 45.5017, lng: -73.5673, users: 176, percentage: 2.1 },
+    { city: 'Boston', country: 'United States', lat: 42.3601, lng: -71.0589, users: 154, percentage: 1.9 },
+  ];
+
+  // Use mock data in development if no real data exists
+  const displayCities = process.env.NODE_ENV === 'development' && cities.length === 0
+    ? mockCities
+    : cities;
+
   const maxDayClicks = Math.max(...clicksByDay.map(d => d.clicks), 1);
   const totalDayClicks = clicksByDay.reduce((sum, d) => sum + d.clicks, 0);
 
@@ -1399,49 +1423,6 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
 
       {/* Row 2: Countries + Browsers */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Top Cities" isEmpty={cities.length === 0} height="h-[144]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={cities.slice(citiesPage * CITIES_PER_PAGE, (citiesPage + 1) * CITIES_PER_PAGE)}
-              layout="vertical"
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 10, fill: '#64748b' }} tickLine={false} />
-              <YAxis
-                type="category"
-                dataKey="city"
-                tick={{ fontSize: 11, fill: '#64748b' }}
-                tickLine={false}
-                axisLine={false}
-                width={90}
-              />
-              <Tooltip content={<ChartTooltipWithPercent showPercent />} />
-              <Bar dataKey="users" name="Users" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-          {/* Pagination Controls */}
-          {cities.length > CITIES_PER_PAGE && (
-            <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t border-slate-100">
-              <button
-                onClick={() => setCitiesPage(p => Math.max(0, p - 1))}
-                disabled={citiesPage === 0}
-                className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                <Icon path={mdiChevronLeft} size={1} />
-              </button>
-              <span className="px-3 py-1 text-sm font-medium text-slate-700 bg-slate-50 rounded-lg">
-                {citiesPage + 1} / {Math.ceil(cities.length / CITIES_PER_PAGE)}
-              </span>
-              <button
-                onClick={() => setCitiesPage(p => Math.min(Math.ceil(cities.length / CITIES_PER_PAGE) - 1, p + 1))}
-                disabled={citiesPage >= Math.ceil(cities.length / CITIES_PER_PAGE) - 1}
-                className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                <Icon path={mdiChevronRight} size={1} />
-              </button>
-            </div>
-          )}
-        </ChartCard>
 
         <ChartCard title="Browser Usage" isEmpty={browsers.length === 0} height="h-72">
           <ResponsiveContainer width="100%" height="100%">
@@ -1513,18 +1494,70 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
         </div>
       </div>
 
-      {/* Row 4: Full-width Active Users by Country Map */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-        <SectionHeader
-          title="Active Users by Country"
-          subtitle={`${countries.length} countries tracked`}
-        />
-        <div className="h-[450px]">
-          {countries.length === 0 ? (
-            <EmptyState message="No country data available" />
+      {/* Row 4: Top Cities + Active Users by Country Map */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ChartCard title="Top Cities" isEmpty={displayCities.length === 0} height="h-[400]">
+          {displayCities.length === 0 ? (
+            <EmptyState message="City-level data is not available. This may be due to privacy thresholds or insufficient traffic data." />
           ) : (
-            <ChoroplethMap data={countries} />
+            <>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={displayCities.slice(citiesPage * CITIES_PER_PAGE, (citiesPage + 1) * CITIES_PER_PAGE)}
+                  layout="vertical"
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 10, fill: '#64748b' }} tickLine={false} />
+                  <YAxis
+                    type="category"
+                    dataKey="city"
+                    tick={{ fontSize: 11, fill: '#64748b' }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={90}
+                  />
+                  <Tooltip content={<ChartTooltipWithPercent showPercent />} />
+                  <Bar dataKey="users" name="Users" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+              {/* Pagination Controls */}
+              {displayCities.length > CITIES_PER_PAGE && (
+                <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t border-slate-100">
+                  <button
+                    onClick={() => setCitiesPage(p => Math.max(0, p - 1))}
+                    disabled={citiesPage === 0}
+                    className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Icon path={mdiChevronLeft} size={1} />
+                  </button>
+                  <span className="px-3 py-1 text-sm font-medium text-slate-700 bg-slate-50 rounded-lg">
+                    {citiesPage + 1} / {Math.ceil(displayCities.length / CITIES_PER_PAGE)}
+                  </span>
+                  <button
+                    onClick={() => setCitiesPage(p => Math.min(Math.ceil(displayCities.length / CITIES_PER_PAGE) - 1, p + 1))}
+                    disabled={citiesPage >= Math.ceil(displayCities.length / CITIES_PER_PAGE) - 1}
+                    className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Icon path={mdiChevronRight} size={1} />
+                  </button>
+                </div>
+              )}
+            </>
           )}
+        </ChartCard>
+
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <SectionHeader
+            title="Active Users by Country"
+            subtitle={`${countries.length} countries tracked`}
+          />
+          <div className="h-[400px]">
+            {countries.length === 0 ? (
+              <EmptyState message="No country data available" />
+            ) : (
+              <ChoroplethMap data={countries} />
+            )}
+          </div>
         </div>
       </div>
     </div>

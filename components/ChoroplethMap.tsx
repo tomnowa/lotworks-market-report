@@ -94,8 +94,16 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
     return `${countryName}: No data`;
   };
 
+  const handleMouseMove = (event: React.MouseEvent, geo: any) => {
+    const tooltip = document.getElementById('map-tooltip');
+    if (tooltip) {
+      tooltip.style.left = `${event.pageX + 10}px`;
+      tooltip.style.top = `${event.pageY - 10}px`;
+    }
+  };
+
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full relative">
       <ComposableMap
         projection="geoMercator"
         projectionConfig={{
@@ -119,8 +127,8 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
                   key={geo.rsmKey}
                   geography={geo}
                   fill={getCountryColor(geo)}
-                  stroke="#ffffff"
-                  strokeWidth={0.5}
+                  stroke="#334155"
+                  strokeWidth={0.3}
                   style={{
                     default: {
                       outline: 'none',
@@ -128,6 +136,8 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
                     hover: {
                       outline: 'none',
                       fill: countryData ? '#1e40af' : '#e2e8f0',
+                      stroke: '#1e293b',
+                      strokeWidth: 0.8,
                       cursor: 'pointer',
                     },
                     pressed: {
@@ -139,19 +149,22 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
                     // Create a simple tooltip
                     const tooltipEl = document.createElement('div');
                     tooltipEl.innerHTML = tooltip;
-                    tooltipEl.style.position = 'absolute';
-                    tooltipEl.style.background = 'rgba(0, 0, 0, 0.8)';
+                    tooltipEl.style.position = 'fixed';
+                    tooltipEl.style.background = 'rgba(15, 23, 42, 0.95)';
                     tooltipEl.style.color = 'white';
                     tooltipEl.style.padding = '8px 12px';
-                    tooltipEl.style.borderRadius = '4px';
+                    tooltipEl.style.borderRadius = '6px';
                     tooltipEl.style.fontSize = '12px';
                     tooltipEl.style.pointerEvents = 'none';
                     tooltipEl.style.zIndex = '1000';
-                    tooltipEl.style.left = `${event.clientX + 10}px`;
-                    tooltipEl.style.top = `${event.clientY - 10}px`;
+                    tooltipEl.style.left = `${event.pageX + 10}px`;
+                    tooltipEl.style.top = `${event.pageY - 10}px`;
+                    tooltipEl.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+                    tooltipEl.style.border = '1px solid rgba(255, 255, 255, 0.1)';
                     tooltipEl.id = 'map-tooltip';
                     document.body.appendChild(tooltipEl);
                   }}
+                  onMouseMove={(event) => handleMouseMove(event, geo)}
                   onMouseLeave={() => {
                     const tooltip = document.getElementById('map-tooltip');
                     if (tooltip) {
@@ -166,17 +179,19 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
       </ComposableMap>
 
       {/* Legend */}
-      <div className="flex items-center justify-center gap-2 mt-4 text-xs text-slate-600">
-        <span>Less visitors</span>
-        <div className="flex gap-1">
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: '#f1f5f9' }}></div>
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: '#cbd5e1' }}></div>
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: '#94a3b8' }}></div>
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: '#64748b' }}></div>
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: '#475569' }}></div>
-          <div className="w-4 h-4 rounded" style={{ backgroundColor: '#1e40af' }}></div>
+      <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 border border-slate-200 shadow-sm">
+        <div className="flex items-center justify-center gap-3 text-xs text-slate-700">
+          <span className="font-medium">Less visitors</span>
+          <div className="flex gap-1">
+            <div className="w-3 h-3 rounded-sm border border-slate-300" style={{ backgroundColor: '#f1f5f9' }}></div>
+            <div className="w-3 h-3 rounded-sm border border-slate-300" style={{ backgroundColor: '#cbd5e1' }}></div>
+            <div className="w-3 h-3 rounded-sm border border-slate-300" style={{ backgroundColor: '#94a3b8' }}></div>
+            <div className="w-3 h-3 rounded-sm border border-slate-300" style={{ backgroundColor: '#64748b' }}></div>
+            <div className="w-3 h-3 rounded-sm border border-slate-300" style={{ backgroundColor: '#475569' }}></div>
+            <div className="w-3 h-3 rounded-sm border border-slate-300" style={{ backgroundColor: '#1e40af' }}></div>
+          </div>
+          <span className="font-medium">More visitors</span>
         </div>
-        <span>More visitors</span>
       </div>
     </div>
   );
