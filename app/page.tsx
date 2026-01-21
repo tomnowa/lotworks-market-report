@@ -287,7 +287,7 @@ function StatCard({
       )}
       <div className="flex items-start justify-between mb-3">
         <div className={`p-2.5 rounded-xl ${accent ? 'bg-lime-400/20' : 'bg-emerald-50'}`}>
-          <Icon path={iconPath} size={1.25} color={accent ? '#84cc16' : '#059669'} />
+          <Icon path={iconPath} size={1} color={accent ? '#84cc16' : '#059669'} />
         </div>
         {hasChange && (
           <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg ${
@@ -955,7 +955,7 @@ function OverviewContent({ report }: { report: MarketReport }) {
             <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#4B5FD720' }}>
               <Icon
                 path={mdiRobotExcitedOutline}
-                size={0.75}
+                size={1}
                 color="#4B5FD7"
               />
             </div>
