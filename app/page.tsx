@@ -65,7 +65,7 @@ const CityMap = dynamic(() => import('@/components/CityMap'), {
   )
 });
 
-const CountryMap = dynamic(() => import('@/components/CountryMap'), {
+const ChoroplethMap = dynamic(() => import('@/components/ChoroplethMap'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full flex items-center justify-center bg-slate-100 rounded-lg">
@@ -1523,7 +1523,7 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
           {countries.length === 0 ? (
             <EmptyState message="No country data available" />
           ) : (
-            <CountryMap data={countries} />
+            <ChoroplethMap data={countries} />
           )}
         </div>
       </div>
