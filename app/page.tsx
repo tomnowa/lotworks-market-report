@@ -616,9 +616,14 @@ function CommunityFilter({
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
           selected.length > 0
-            ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+            ? 'border'
             : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'
         }`}
+        style={selected.length > 0 ? {
+          backgroundColor: '#4B5FD715',
+          color: '#4B5FD7',
+          borderColor: '#4B5FD720'
+        } : {}}
       >
         <Filter className="w-3.5 h-3.5" />
         {selected.length === 0 ? 'Filter' : `${selected.length} selected`}
@@ -653,7 +658,10 @@ function CommunityFilter({
                     type="checkbox"
                     checked={selected.includes(community)}
                     onChange={() => toggleCommunity(community)}
-                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                    className="w-4 h-4 rounded border-slate-300 focus:ring-blue-500"
+                    style={{
+                      accentColor: '#4B5FD7'
+                    }}
                   />
                   <span className="text-sm text-slate-700 truncate">{community}</span>
                 </label>
@@ -1541,25 +1549,39 @@ function Sidebar({
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group ${
-                isActive 
-                  ? 'bg-emerald-50 text-emerald-700' 
+                isActive
+                  ? 'text-slate-700'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
               }`}
+              style={isActive ? { backgroundColor: '#4B5FD715' } : {}}
+              onMouseEnter={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = '#f1f5f9';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }
+              }}
               title={collapsed ? tab.label : undefined}
             >
               <div className={`p-2 rounded-lg transition-colors ${
-                isActive ? 'bg-emerald-100' : 'bg-slate-100 group-hover:bg-slate-200'
-              }`}>
-                <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-600' : 'text-slate-500'}`} />
+                isActive ? '' : 'bg-slate-100 group-hover:bg-slate-200'
+              }`}
+              style={isActive ? { backgroundColor: '#4B5FD720' } : {}}>
+                <Icon className={`w-4 h-4 ${isActive ? '' : 'text-slate-500'}`}
+                style={isActive ? { color: '#4B5FD7' } : {}} />
               </div>
               {!collapsed && (
                 <div className="flex-1 text-left">
-                  <div className={`text-sm font-semibold ${isActive ? 'text-emerald-700' : ''}`}>{tab.label}</div>
+                  <div className={`text-sm font-semibold ${isActive ? '' : ''}`}
+                  style={isActive ? { color: '#4B5FD7' } : {}}>{tab.label}</div>
                   <div className="text-[11px] text-slate-400">{tab.description}</div>
                 </div>
               )}
               {!collapsed && isActive && (
-                <div className="w-1.5 h-8 bg-emerald-500 rounded-full" />
+                <div className="w-1.5 h-8 rounded-full" style={{ backgroundColor: '#4B5FD7' }} />
               )}
             </button>
           );
@@ -1906,7 +1928,16 @@ export default function Dashboard() {
             <button
               onClick={handleExport}
               disabled={!report}
-              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors text-sm font-semibold disabled:opacity-50"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-white transition-colors text-sm font-semibold disabled:opacity-50"
+              style={{
+                backgroundColor: '#4B5FD7',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#3B4FB7';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#4B5FD7';
+              }}
             >
               <Download className="w-4 h-4" />
               Export
