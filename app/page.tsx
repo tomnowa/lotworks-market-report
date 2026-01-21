@@ -278,7 +278,7 @@ function StatCard({
           ? 'text-white shadow-lg border'
           : 'bg-white border border-slate-200 shadow-sm hover:border-slate-300'
       }`}
-      style={accent ? { backgroundColor: '#4B5FD7', borderColor: '#4B5FD7' } : {}}
+      style={accent ? { backgroundColor: '#192a54', borderColor: '#192a54' } : {}}
     >
       {tooltip && (
         <div className="absolute bottom-full left-0 right-0 mb-2 mx-1 px-3 py-2 bg-slate-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 text-center">
@@ -288,7 +288,7 @@ function StatCard({
       )}
       <div className="flex items-start justify-between mb-3">
         <div className={`p-2.5 rounded-xl ${accent ? 'bg-lime-400/20' : 'bg-emerald-50'}`}>
-          <Icon path={iconPath} size={1} color="#4B5FD7" />
+          <Icon path={iconPath} size={1} color={accent ? '#ffffff' : '#4B5FD7'} />
         </div>
         {hasChange && (
           <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg ${
