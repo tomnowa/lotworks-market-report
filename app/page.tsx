@@ -1235,7 +1235,7 @@ function MapDetailsContent({
             label: 'Lot',
             render: (item) => (
               <div className="font-medium text-slate-800">
-                <div className="truncate max-w-[200px] md:max-w-[300px]" title={`${item.lot} - ${item.community}`}>
+                <div className="truncate max-w-[200px] md:max-w-[300px]" title={`${item.lot}`}>
                   {item.lot}
                   <span className="hidden md:inline text-slate-500 ml-1">- {item.community}</span>
                 </div>
@@ -1244,7 +1244,7 @@ function MapDetailsContent({
           },
           {
             key: 'community',
-            label: 'Community',
+            label: 'Community',            
             render: (item) => <span className="text-slate-600 truncate block max-w-[150px]" title={item.community}>{item.community}</span>
           },
           {
