@@ -1,42 +1,43 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  Eye,
-  MousePointerClick,
-  Target,
-  Calendar,
-  ChevronDown,
-  Download,
-  RefreshCw,
-  Building2,
-  AlertCircle,
-  Clock,
-  Monitor,
-  Smartphone,
-  Tablet,
-  TrendingUp,
-  TrendingDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  ArrowUpDown,
-  Flame,
-  Lightbulb,
-  AlertTriangle,
-  BarChart3,
-  FileWarning,
-  Info,
-  LayoutDashboard,
-  Map,
-  PieChart as PieChartIcon,
-  Menu,
-  X,
-  Filter,
-} from 'lucide-react';
+// MDI Icons imported from @mdi/js above
 import Icon from '@mdi/react';
-import { mdiRobotExcitedOutline } from '@mdi/js';
+import {
+  mdiRobotExcitedOutline,
+  mdiEye,
+  mdiCursorPointer,
+  mdiTarget,
+  mdiCalendar,
+  mdiChevronDown,
+  mdiDownload,
+  mdiRefresh,
+  mdiOfficeBuilding,
+  mdiAlertCircle,
+  mdiClock,
+  mdiMonitor,
+  mdiCellphone,
+  mdiTablet,
+  mdiTrendingUp,
+  mdiTrendingDown,
+  mdiChevronLeft,
+  mdiChevronRight,
+  mdiChevronDoubleLeft,
+  mdiChevronDoubleRight,
+  mdiArrowUpDown,
+  mdiFire,
+  mdiLightbulb,
+  mdiAlert,
+  mdiChartBar,
+  mdiFileAlert,
+  mdiInformation,
+  mdiViewDashboard,
+  mdiMap,
+  mdiChartPie,
+  mdiMenu,
+  mdiClose,
+  mdiFilter,
+} from '@mdi/js';
 import {
   LineChart,
   Line,
@@ -92,9 +93,9 @@ interface TabConfig {
 }
 
 const TABS: TabConfig[] = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard, description: 'Executive Summary' },
-  { id: 'details', label: 'Map Details', icon: Map, description: 'Communities & Lots' },
-  { id: 'analytics', label: 'Analytics', icon: PieChartIcon, description: 'Traffic & Demographics' },
+  { id: 'overview', label: 'Overview', icon: mdiViewDashboard, description: 'Executive Summary' },
+  { id: 'details', label: 'Map Details', icon: mdiMap, description: 'Communities & Lots' },
+  { id: 'analytics', label: 'Analytics', icon: mdiChartPie, description: 'Traffic & Demographics' },
 ];
 
 // ============================================================================
@@ -220,7 +221,7 @@ function exportReportToCSV(report: MarketReport) {
 function EmptyState({ message = "No data available" }: { message?: string }) {
   return (
     <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-slate-400">
-      <FileWarning className="w-10 h-10 mb-2 opacity-50" />
+      <Icon path={mdiFileAlert} size={2.5} color="#64748b" style={{ opacity: 0.5 }} />
       <p className="text-sm">{message}</p>
     </div>
   );
@@ -251,18 +252,18 @@ function ChartTooltipWithPercent({ active, payload, label, showPercent = false }
   );
 }
 
-function StatCard({ 
-  title, 
-  value, 
-  change, 
-  icon: Icon, 
+function StatCard({
+  title,
+  value,
+  change,
+  icon: iconPath,
   accent = false,
   tooltip,
-}: { 
-  title: string; 
-  value: string | number; 
-  change?: number; 
-  icon: React.ElementType; 
+}: {
+  title: string;
+  value: string | number;
+  change?: number;
+  icon: string;
   accent?: boolean;
   tooltip?: string;
 }) {
@@ -286,13 +287,13 @@ function StatCard({
       )}
       <div className="flex items-start justify-between mb-3">
         <div className={`p-2.5 rounded-xl ${accent ? 'bg-lime-400/20' : 'bg-emerald-50'}`}>
-          <Icon className={`w-5 h-5 ${accent ? 'text-lime-400' : 'text-emerald-600'}`} />
+          <Icon path={iconPath} size={1.25} color={accent ? '#84cc16' : '#059669'} />
         </div>
         {hasChange && (
           <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg ${
             isPositive ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'
           }`}>
-            {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+            {isPositive ? <Icon path={mdiTrendingUp} size={0.75} /> : <Icon path={mdiTrendingDown} size={0.75} />}
             {Math.abs(change).toFixed(1)}%
           </div>
         )}
@@ -306,21 +307,20 @@ function StatCard({
 }
 
 function InsightCard({ type, title, description }: { type: string; title: string; description: string }) {
-  const configs: Record<string, { icon: React.ElementType; bg: string; border: string; iconBg: string }> = {
-    trending: { icon: TrendingUp, bg: 'bg-emerald-50', border: 'border-emerald-200', iconBg: 'bg-emerald-100 text-emerald-600' },
-    hot: { icon: Flame, bg: 'bg-orange-50', border: 'border-orange-200', iconBg: 'bg-orange-100 text-orange-600' },
-    opportunity: { icon: Lightbulb, bg: 'bg-blue-50', border: 'border-blue-200', iconBg: 'bg-blue-100 text-blue-600' },
-    warning: { icon: AlertTriangle, bg: 'bg-amber-50', border: 'border-amber-200', iconBg: 'bg-amber-100 text-amber-600' },
+  const configs: Record<string, { icon: string; bg: string; border: string; iconBg: string }> = {
+    trending: { icon: mdiTrendingUp, bg: 'bg-emerald-50', border: 'border-emerald-200', iconBg: 'bg-emerald-100 text-emerald-600' },
+    hot: { icon: mdiFire, bg: 'bg-orange-50', border: 'border-orange-200', iconBg: 'bg-orange-100 text-orange-600' },
+    opportunity: { icon: mdiLightbulb, bg: 'bg-blue-50', border: 'border-blue-200', iconBg: 'bg-blue-100 text-blue-600' },
+    warning: { icon: mdiAlert, bg: 'bg-amber-50', border: 'border-amber-200', iconBg: 'bg-amber-100 text-amber-600' },
   };
   
   const config = configs[type] || configs.trending;
-  const Icon = config.icon;
-  
+
   return (
     <div className={`rounded-xl p-4 border transition-all duration-200 hover:shadow-md ${config.bg} ${config.border}`}>
       <div className="flex gap-3">
         <div className={`p-2 rounded-lg h-fit flex-shrink-0 ${config.iconBg}`}>
-          <Icon className="w-4 h-4" />
+          <Icon path={config.icon} size={1} />
         </div>
         <div className="min-w-0">
           <div className="font-semibold text-slate-800 mb-1 leading-tight">{title}</div>
@@ -440,11 +440,11 @@ function DateRangePicker({
         disabled={disabled}
         className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-colors text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
       >
-        <Calendar className="w-4 h-4 text-slate-400" />
+        <Icon path={mdiCalendar} size={1} color="#94a3b8" />
         <span className="font-medium">
           {formatDateForDisplay(startDate)} – {formatDateForDisplay(endDate)}
         </span>
-        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <Icon path={mdiChevronDown} size={1} color="#94a3b8" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
       </button>
       
       {isOpen && (
@@ -486,7 +486,7 @@ function DateRangePicker({
               </div>
               {tempStart > tempEnd && (
                 <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
-                  <Info className="w-3.5 h-3.5" />
+                  <Icon path={mdiInformation} size={0.875} />
                   Dates will be swapped automatically
                 </div>
               )}
@@ -538,9 +538,9 @@ function ClientSelector({
         disabled={disabled}
         className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-colors min-w-[180px] disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <Building2 className="w-4 h-4 text-emerald-600" />
+        <Icon path={mdiOfficeBuilding} size={1} color="#059669" />
         <span className="text-sm flex-1 text-left font-medium text-slate-700 truncate">{selected}</span>
-        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <Icon path={mdiChevronDown} size={1} color="#94a3b8" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
       </button>
       
       {isOpen && (
@@ -626,7 +626,7 @@ function CommunityFilter({
           borderColor: '#4B5FD720'
         } : {}}
       >
-        <Filter className="w-3.5 h-3.5" />
+        <Icon path={mdiFilter} size={0.875} />
         {selected.length === 0 ? 'Filter' : `${selected.length} selected`}
         <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
@@ -786,7 +786,7 @@ function DataTable<T extends object>({
                   <div className={`flex items-center gap-1.5 ${col.align === 'right' ? 'justify-end' : ''}`}>
                     {col.label}
                     {col.sortable && (
-                      <ArrowUpDown className={`w-3 h-3 transition-colors ${sortKey === col.key ? 'text-emerald-600' : 'text-slate-300'}`} />
+                      <Icon path={mdiArrowUpDown} size={0.75} color={sortKey === col.key ? '#059669' : '#cbd5e1'} />
                     )}
                   </div>
                 </th>
@@ -823,14 +823,14 @@ function DataTable<T extends object>({
               disabled={page === 0}
               className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronsLeft className="w-4 h-4" />
+              <Icon path={mdiChevronDoubleLeft} size={1} />
             </button>
             <button
               onClick={() => setPage(p => Math.max(0, p - 1))}
               disabled={page === 0}
               className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <Icon path={mdiChevronLeft} size={1} />
             </button>
             <span className="px-3 py-1 text-sm font-medium text-slate-700 bg-white rounded-lg border border-slate-200">
               {page + 1} / {totalPages}
@@ -840,14 +840,14 @@ function DataTable<T extends object>({
               disabled={page >= totalPages - 1}
               className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronRight className="w-4 h-4" />
+              <Icon path={mdiChevronRight} size={1} />
             </button>
             <button
               onClick={() => setPage(totalPages - 1)}
               disabled={page >= totalPages - 1}
               className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronsRight className="w-4 h-4" />
+              <Icon path={mdiChevronDoubleRight} size={1} />
             </button>
           </div>
         </div>
@@ -921,7 +921,7 @@ function OverviewContent({ report }: { report: MarketReport }) {
           title="Map Loads"
           value={report.summary?.totalMapLoads ?? 0}
           change={report.summary?.mapLoadsChange}
-          icon={Eye}
+          icon={mdiEye}
           accent
           tooltip="Number of times your maps were loaded"
         />
@@ -929,21 +929,21 @@ function OverviewContent({ report }: { report: MarketReport }) {
           title="Lot Clicks"
           value={report.summary?.totalLotClicks ?? 0}
           change={report.summary?.lotClicksChange}
-          icon={MousePointerClick}
+          icon={mdiCursorPointer}
           tooltip="Number of times visitors clicked on your lots"
         />
         <StatCard
           title="Avg. Time on Map"
           value={report.summary?.avgTimeOnMap || '—'}
           change={report.summary?.avgTimeChange}
-          icon={Clock}
+          icon={mdiClock}
           tooltip="Average time spent on your maps"
         />
         <StatCard
           title="Click Rate"
           value={`${(report.summary?.clickThroughRate ?? 0).toFixed(1)}%`}
           change={report.summary?.clickRateChange}
-          icon={Target}
+          icon={mdiTarget}
           tooltip="Percentage of visitors who clicked on your lots"
         />
       </div>
@@ -1367,9 +1367,9 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
                 <div key={i} className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center" 
                        style={{ backgroundColor: `${DEVICE_COLORS[d.device] || CHART_COLORS[i]}15` }}>
-                    {d.device === 'Mobile' && <Smartphone className="w-5 h-5 text-blue-500" />}
-                    {d.device === 'Desktop' && <Monitor className="w-5 h-5 text-red-500" />}
-                    {d.device === 'Tablet' && <Tablet className="w-5 h-5 text-amber-500" />}
+                    {d.device === 'Mobile' && <Icon path={mdiCellphone} size={1.25} color="#3b82f6" />}
+                    {d.device === 'Desktop' && <Icon path={mdiMonitor} size={1.25} color="#ef4444" />}
+                    {d.device === 'Tablet' && <Icon path={mdiTablet} size={1.25} color="#f59e0b" />}
                   </div>
                   <div className="flex-1">
                     <div className="font-medium text-slate-800">{d.device}</div>
@@ -1546,9 +1546,8 @@ function Sidebar({
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-1">
         {TABS.map(tab => {
-          const Icon = tab.icon;
           const isActive = activeTab === tab.id;
-          
+
           return (
             <button
               key={tab.id}
@@ -1575,8 +1574,7 @@ function Sidebar({
                 isActive ? '' : 'bg-slate-100 group-hover:bg-slate-200'
               }`}
               style={isActive ? { backgroundColor: '#4B5FD720' } : {}}>
-                <Icon className={`w-4 h-4 ${isActive ? '' : 'text-slate-500'}`}
-                style={isActive ? { color: '#4B5FD7' } : {}} />
+                <Icon path={tab.icon} size={1} color={isActive ? '#4B5FD7' : '#64748b'} />
               </div>
               {!collapsed && (
                 <div className="flex-1 text-left">
@@ -1604,9 +1602,9 @@ function Sidebar({
           >
             <div className="p-2 rounded-lg transition-colors bg-slate-100 group-hover:bg-slate-200">
               {collapsed ? (
-                <ChevronRight className="w-4 h-4 text-slate-500" />
+                <Icon path={mdiChevronRight} size={1} color="#64748b" />
               ) : (
-                <ChevronLeft className="w-4 h-4 text-slate-500" />
+                <Icon path={mdiChevronLeft} size={1} color="#64748b" />
               )}
             </div>
             {!collapsed && (
@@ -1632,7 +1630,7 @@ function Sidebar({
             </div>
           ) : (
             <div className="text-center" title={lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : undefined}>
-              <Clock className="w-4 h-4 text-slate-400 mx-auto" />
+              <Icon path={mdiClock} size={1} color="#94a3b8" style={{ margin: '0 auto' }} />
             </div>
           )}
         </div>
@@ -1667,7 +1665,7 @@ function MobileNav({
         <div className="h-16 border-b border-slate-100 flex items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-lime-400 to-emerald-500 flex items-center justify-center">
-              <BarChart3 className="w-4 h-4 text-slate-900" />
+              <Icon path={mdiChartBar} size={1} color="#0f172a" />
             </div>
             <div>
               <div className="font-bold text-slate-800 text-sm">LotWorks</div>
@@ -1675,26 +1673,25 @@ function MobileNav({
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg">
-            <X className="w-5 h-5 text-slate-500" />
+            <Icon path={mdiClose} size={1.25} color="#64748b" />
           </button>
         </div>
         
         <nav className="flex-1 p-4 space-y-2">
           {TABS.map(tab => {
-            const Icon = tab.icon;
             const isActive = activeTab === tab.id;
-            
+
             return (
               <button
                 key={tab.id}
                 onClick={() => { onTabChange(tab.id); onClose(); }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                  isActive 
-                    ? 'bg-emerald-50 text-emerald-700' 
+                  isActive
+                    ? 'bg-emerald-50 text-emerald-700'
                     : 'text-slate-600 hover:bg-slate-50'
                 }`}
               >
-                <Icon className={`w-5 h-5 ${isActive ? 'text-emerald-600' : 'text-slate-400'}`} />
+                <Icon path={tab.icon} size={1.25} color={isActive ? '#059669' : '#94a3b8'} />
                 <div className="flex-1 text-left">
                   <div className="font-semibold">{tab.label}</div>
                   <div className="text-xs text-slate-400">{tab.description}</div>
@@ -1853,7 +1850,7 @@ export default function Dashboard() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl p-8 shadow-xl max-w-md w-full text-center border border-slate-200">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-red-500" />
+            <Icon path={mdiAlertCircle} size={2} color="#ef4444" />
           </div>
           <h2 className="text-xl font-bold text-slate-800 mb-2">Failed to Load Report</h2>
           <p className="text-slate-600 mb-6 text-sm">{error}</p>
@@ -1902,7 +1899,7 @@ export default function Dashboard() {
               onClick={() => setMobileNavOpen(true)}
               className="lg:hidden p-2 hover:bg-slate-100 rounded-lg"
             >
-              <Menu className="w-5 h-5 text-slate-600" />
+              <Icon path={mdiMenu} size={1.25} color="#475569" />
             </button>
             
             <ClientSelector
@@ -1927,7 +1924,7 @@ export default function Dashboard() {
               className="p-2 rounded-xl hover:bg-slate-100 transition-colors disabled:opacity-50"
               title="Refresh data"
             >
-              <RefreshCw className={`w-5 h-5 text-slate-600 ${refreshing ? 'animate-spin' : ''}`} />
+              <Icon path={mdiRefresh} size={1.25} color="#475569" className={refreshing ? 'animate-spin' : ''} />
             </button>
             
             <button
@@ -1944,7 +1941,7 @@ export default function Dashboard() {
                 e.currentTarget.style.backgroundColor = '#4B5FD7';
               }}
             >
-              <Download className="w-4 h-4" />
+              <Icon path={mdiDownload} size={1} />
               Export
             </button>
           </div>
