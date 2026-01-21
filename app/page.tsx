@@ -1245,7 +1245,6 @@ function MapDetailsContent({
           {
             key: 'community',
             label: 'Community',
-            className: 'hidden md:table-cell',
             render: (item) => <span className="text-slate-600 truncate block max-w-[150px]" title={item.community}>{item.community}</span>
           },
           {
