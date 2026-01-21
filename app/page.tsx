@@ -951,8 +951,11 @@ function OverviewContent({ report }: { report: MarketReport }) {
       {insights.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-4">
-            <div className="p-1.5 rounded-lg bg-gradient-to-br from-lime-400 to-emerald-500">
-              <Bot className="w-4 h-4 text-slate-900" />
+            <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#4B5FD720' }}>
+              <span
+                className="mdi-robot-excited-outline mdi v-icon notranslate v-theme--light mb-2 text-medium-emphasis w-4 h-4"
+                style={{ color: '#4B5FD7' }}
+              ></span>
             </div>
             <h2 className="text-lg font-bold text-slate-800">LotWorks AI Insights</h2>
           </div>
