@@ -953,10 +953,11 @@ function OverviewContent({ report }: { report: MarketReport }) {
         <div>
           <div className="flex items-center gap-2 mb-4">
             <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#4B5FD720' }}>
-              <span
-                className="mdi-robot-excited-outline mdi v-icon notranslate v-theme--light mb-2 text-medium-emphasis w-4 h-4"
-                style={{ color: '#4B5FD7' }}
-              ></span>
+              <Icon
+                path={mdiRobotExcitedOutline}
+                size={0.75}
+                color="#4B5FD7"
+              />
             </div>
             <h2 className="text-lg font-bold text-slate-800">LotWorks AI Insights</h2>
           </div>
