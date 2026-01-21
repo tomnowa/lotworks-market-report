@@ -921,7 +921,7 @@ function OverviewContent({ report }: { report: MarketReport }) {
           value={report.summary?.totalLotClicks ?? 0}
           change={report.summary?.lotClicksChange}
           icon={MousePointerClick}
-          tooltip="Number of clicks on lots for details"
+          tooltip="Number of times visitors clicked on your lots"
         />
         <StatCard
           title="Avg. Time on Map"
@@ -935,7 +935,7 @@ function OverviewContent({ report }: { report: MarketReport }) {
           value={`${(report.summary?.clickThroughRate ?? 0).toFixed(1)}%`}
           change={report.summary?.clickRateChange}
           icon={Target}
-          tooltip="Percentage of viewers who clicked a lot"
+          tooltip="Percentage of visitors who clicked on your lots"
         />
       </div>
 
@@ -1412,10 +1412,10 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
             {osList.slice(0, 6).map((os, i) => (
               <div key={i} className="flex items-center gap-3">
                 <span className="w-20 text-sm text-slate-700 font-medium truncate" title={os.os}>{os.os}</span>
-                <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
-                  <div 
+                <div className="flex-1 max-w-[200px] h-3 bg-slate-100 rounded-full overflow-hidden">
+                  <div
                     className="h-full rounded-full transition-all"
-                    style={{ 
+                    style={{
                       width: `${os.percentage}%`,
                       backgroundColor: CHART_COLORS[i % CHART_COLORS.length]
                     }}
@@ -1694,6 +1694,25 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Loading subtitles
+  const loadingSubtitles = [
+    "Fetching analytics data from your maps...",
+    "Analyzing your latest community trends...",
+    "Preparing market report intelligence..."
+  ];
+  const [currentSubtitleIndex, setCurrentSubtitleIndex] = useState(0);
+
+  // Cycle through loading subtitles while loading
+  useEffect(() => {
+    if (!loading) return;
+
+    const interval = setInterval(() => {
+      setCurrentSubtitleIndex((prev) => (prev + 1) % loadingSubtitles.length);
+    }, 2000); // Change subtitle every 2 seconds
+
+    return () => clearInterval(interval);
+  }, [loading, loadingSubtitles.length]);
   
   // UI State
   const [activeTab, setActiveTab] = useState<TabId>('overview');
@@ -1776,8 +1795,8 @@ export default function Dashboard() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-600 font-medium">Loading LotWorks Market Report...</p>
-          <p className="text-slate-400 text-sm mt-1">Fetching data from Google Analytics</p>
+          <p className="text-slate-600 font-medium">Loading LotWorks Insights...</p>
+          <p className="text-slate-400 text-sm mt-1">{loadingSubtitles[currentSubtitleIndex]}</p>
         </div>
       </div>
     );
