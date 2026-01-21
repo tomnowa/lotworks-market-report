@@ -34,8 +34,9 @@ import {
   Menu,
   X,
   Filter,
-  Bot,
 } from 'lucide-react';
+import Icon from '@mdi/react';
+import { mdiRobotExcitedOutline } from '@mdi/js';
 import {
   LineChart,
   Line,
