@@ -1516,6 +1516,20 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
           title="Top Cities"
           subtitle={`${displayCities.length} cities with activity`}
           height={displayCities.length > CITIES_PER_PAGE ? "h-[450px]" : "h-[400px]"}
+          action={
+            <div className="flex items-center gap-4 text-xs text-slate-700">
+              <span className="font-medium">Less visitors</span>
+              <div className="flex gap-1">
+                <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#fef2f2' }}></div>
+                <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#fee2e2' }}></div>
+                <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#fecaca' }}></div>
+                <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#fca5a5' }}></div>
+                <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#f87171' }}></div>
+                <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#dc2626' }}></div>
+              </div>
+              <span className="font-medium">More visitors</span>
+            </div>
+          }
         >
           {displayCities.length === 0 ? (
             <EmptyState message="No city data available for the selected time period." />
@@ -1580,32 +1594,13 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
             title="Active Users by Country"
             subtitle={`${countries.length} countries tracked`}
           />
-          {countries.length === 0 ? (
-            <div className="h-[400px] flex items-center justify-center">
+          <div className="h-[400px]">
+            {countries.length === 0 ? (
               <EmptyState message="No country data available" />
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="h-[350px]">
-                <ChoroplethMap data={countries} />
-              </div>
-              {/* Legend */}
-              <div className="bg-white rounded-lg p-3 border border-slate-200 shadow-sm">
-                <div className="flex items-center justify-center gap-3 text-xs text-slate-700">
-                  <span className="font-medium">Less visitors</span>
-                  <div className="flex gap-1">
-                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#e2e8f0' }}></div>
-                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#bfdbfe' }}></div>
-                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#93c5fd' }}></div>
-                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#60a5fa' }}></div>
-                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#3b82f6' }}></div>
-                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#1e40af' }}></div>
-                  </div>
-                  <span className="font-medium">More visitors</span>
-                </div>
-              </div>
-            </div>
-          )}
+            ) : (
+              <ChoroplethMap data={countries} />
+            )}
+          </div>
         </div>
       </div>
     </div>

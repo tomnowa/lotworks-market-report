@@ -68,7 +68,7 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
 
     return scaleLog<string>()
       .domain([minValue, maxValue])
-      .range(['#e2e8f0', '#1e40af']) // Light blue to dark blue
+      .range(['#fef2f2', '#dc2626']) // Light red to dark red (heatmap)
       .clamp(true); // Clamp values to range
   }, [data]);
 
@@ -109,21 +109,19 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
 
   const handleMouseEnter = (event: React.MouseEvent, geo: any) => {
     const content = getTooltipContent(geo);
-    const rect = (event.currentTarget as Element).getBoundingClientRect();
     setTooltip({
       content,
-      x: event.clientX - rect.left + 10,
-      y: event.clientY - rect.top - 10,
+      x: event.clientX + 10,
+      y: event.clientY - 10,
       visible: true,
     });
   };
 
   const handleMouseMove = (event: React.MouseEvent) => {
-    const rect = (event.currentTarget as Element).getBoundingClientRect();
     setTooltip(prev => prev ? {
       ...prev,
-      x: event.clientX - rect.left + 10,
-      y: event.clientY - rect.top - 10,
+      x: event.clientX + 10,
+      y: event.clientY - 10,
     } : null);
   };
 
@@ -185,7 +183,7 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
       {/* Tooltip */}
       {tooltip && tooltip.visible && (
         <div
-          className="absolute z-50 pointer-events-none bg-slate-900 text-white px-3 py-2 rounded-lg shadow-xl border border-slate-700 text-sm"
+          className="fixed z-50 pointer-events-none bg-slate-900 text-white px-3 py-2 rounded-lg shadow-xl border border-slate-700 text-sm"
           style={{
             left: tooltip.x,
             top: tooltip.y,
