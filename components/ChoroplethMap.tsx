@@ -118,13 +118,11 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
   };
 
   const handleMouseMove = (event: React.MouseEvent) => {
-    if (tooltip) {
-      setTooltip(prev => prev ? {
-        ...prev,
-        x: event.pageX + 10,
-        y: event.pageY - 10,
-      } : null);
-    }
+    setTooltip(prev => prev ? {
+      ...prev,
+      x: event.pageX + 10,
+      y: event.pageY - 10,
+    } : null);
   };
 
   const handleMouseLeave = () => {
@@ -134,13 +132,15 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
   return (
     <div className="w-full h-full flex flex-col relative">
       {/* Map Container */}
-      <div className="flex-1 relative overflow-hidden">
+      <div className="flex-1 relative min-h-0">
         <ComposableMap
           projection="geoMercator"
           projectionConfig={{
             scale: 120,
             center: [0, 20],
           }}
+          width={800}
+          height={400}
           style={{ width: '100%', height: '100%' }}
         >
           <Sphere id="sphere" stroke="#e2e8f0" strokeWidth={0.5} fill="#f8fafc" />
@@ -184,7 +184,7 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
       </div>
 
       {/* Legend below the map */}
-      <div className="mt-4 bg-white rounded-lg p-3 border border-slate-200 shadow-sm">
+      <div className="flex-shrink-0 mt-2 bg-white rounded-lg p-3 border border-slate-200 shadow-sm">
         <div className="flex items-center justify-center gap-3 text-xs text-slate-700">
           <span className="font-medium">Less visitors</span>
           <div className="flex gap-1">
