@@ -644,7 +644,6 @@ export async function fetchCityBreakdown(
 ): Promise<CityData[]> {
   const client = getClient();
 
-  // Query cities without client filter to show all cities (similar to original CityMap)
   const [response] = await client.runReport({
     property: `properties/${PROPERTY_ID}`,
     dateRanges: [{ startDate, endDate }],
@@ -653,6 +652,12 @@ export async function fetchCityBreakdown(
       { name: 'country' },
     ],
     metrics: [{ name: 'activeUsers' }],
+    dimensionFilter: {
+      filter: {
+        fieldName: 'customEvent:c_client',
+        stringFilter: { matchType: 'EXACT', value: clientName },
+      },
+    },
     orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
     limit: 100,
   });

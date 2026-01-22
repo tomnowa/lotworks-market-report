@@ -1484,7 +1484,7 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
         <ChartCard
           title="Top Cities"
           subtitle={`${displayCities.length} cities with activity`}
-          height="h-[400px]"
+          height={displayCities.length > CITIES_PER_PAGE ? "h-[450px]" : "h-[400px]"}
         >
           {displayCities.length === 0 ? (
             <EmptyState message="No city data available for the selected time period." />
@@ -1497,9 +1497,9 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-                  <XAxis 
-                    type="number" 
-                    tick={{ fontSize: 10, fill: '#64748b' }} 
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 10, fill: '#64748b' }}
                     tickLine={false}
                     axisLine={false}
                   />
