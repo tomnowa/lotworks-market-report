@@ -58,15 +58,6 @@ import type { MarketReport, CommunityPerformance, TopLot } from '@/types';
 import dynamic from 'next/dynamic';
 
 // Dynamic import for maps to avoid SSR issues with Leaflet
-const CityMap = dynamic(() => import('@/components/CityMap'), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-full flex items-center justify-center bg-slate-100 rounded-lg">
-      <div className="text-slate-400 text-sm">Loading map...</div>
-    </div>
-  )
-});
-
 const ChoroplethMap = dynamic(() => import('@/components/ChoroplethMap'), {
   ssr: false,
   loading: () => (
@@ -1670,17 +1661,6 @@ function MapDetailsContent({
 
   return (
     <div className="space-y-6">
-      {/* Community Map */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-        <SectionHeader 
-          title="Community Locations" 
-          subtitle="Click markers to view community details"
-        />
-        <div className="h-[400px] rounded-xl overflow-hidden">
-          <CityMap communities={communityPerf} />
-        </div>
-      </div>
-      
       {/* Community Performance Table */}
       <DataTable<CommunityPerformance>
         data={communityPerf}
