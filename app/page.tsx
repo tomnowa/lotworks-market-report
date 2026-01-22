@@ -1520,33 +1520,35 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
           {displayCities.length === 0 ? (
             <EmptyState message="No city data available for the selected time period." />
           ) : (
-            <>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={displayCities.slice(citiesPage * CITIES_PER_PAGE, (citiesPage + 1) * CITIES_PER_PAGE)}
-                  layout="vertical"
-                  margin={{ top: 5, right: 30, left: 30, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-                  <XAxis
-                    type="number"
-                    tick={{ fontSize: 10, fill: '#64748b' }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="city"
-                    tick={<CityTick />}
-                    tickLine={false}
-                    axisLine={false}
-                    width={110}
-                    interval={0}
-                  />
-                  <Tooltip content={<ChartTooltipWithPercent showPercent />} />
-                  <Bar dataKey="users" name="Users" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="flex flex-col h-full">
+              <div className={displayCities.length > CITIES_PER_PAGE ? "flex-1" : "h-full"}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={displayCities.slice(citiesPage * CITIES_PER_PAGE, (citiesPage + 1) * CITIES_PER_PAGE)}
+                    layout="vertical"
+                    margin={{ top: 5, right: 30, left: 30, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                    <XAxis
+                      type="number"
+                      tick={{ fontSize: 10, fill: '#64748b' }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="city"
+                      tick={<CityTick />}
+                      tickLine={false}
+                      axisLine={false}
+                      width={110}
+                      interval={0}
+                    />
+                    <Tooltip content={<ChartTooltipWithPercent showPercent />} />
+                    <Bar dataKey="users" name="Users" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
               {/* Pagination Controls */}
               {displayCities.length > CITIES_PER_PAGE && (
                 <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t border-slate-100">
@@ -1569,7 +1571,7 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
                   </button>
                 </div>
               )}
-            </>
+            </div>
           )}
         </ChartCard>
 
