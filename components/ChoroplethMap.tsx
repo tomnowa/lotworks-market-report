@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ComposableMap,
   Geographies,
@@ -48,6 +48,13 @@ interface ChoroplethMapProps {
 }
 
 export default function ChoroplethMap({ data }: ChoroplethMapProps) {
+  const [tooltip, setTooltip] = useState<{
+    content: string;
+    x: number;
+    y: number;
+    visible: boolean;
+  } | null>(null);
+
   // Create color scale based on user percentages using log scale for better gradation
   const colorScale = useMemo(() => {
     const percentages = data.map(d => d.percentage);
@@ -100,26 +107,40 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
     return `${countryName}: No data`;
   };
 
-  const handleMouseMove = (event: React.MouseEvent, geo: any) => {
-    const tooltip = document.getElementById('map-tooltip');
+  const handleMouseEnter = (event: React.MouseEvent, geo: any) => {
+    const content = getTooltipContent(geo);
+    setTooltip({
+      content,
+      x: event.pageX + 10,
+      y: event.pageY - 10,
+      visible: true,
+    });
+  };
+
+  const handleMouseMove = (event: React.MouseEvent) => {
     if (tooltip) {
-      tooltip.style.left = `${event.pageX + 10}px`;
-      tooltip.style.top = `${event.pageY - 10}px`;
+      setTooltip(prev => prev ? {
+        ...prev,
+        x: event.pageX + 10,
+        y: event.pageY - 10,
+      } : null);
     }
   };
 
+  const handleMouseLeave = () => {
+    setTooltip(null);
+  };
+
   return (
-    <div className="w-full h-full flex flex-col">
+    <div className="w-full h-full flex flex-col relative">
       {/* Map Container */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative overflow-hidden">
         <ComposableMap
           projection="geoMercator"
           projectionConfig={{
             scale: 120,
             center: [0, 20],
           }}
-          width={800}
-          height={400}
           style={{ width: '100%', height: '100%' }}
         >
           <Sphere id="sphere" stroke="#e2e8f0" strokeWidth={0.5} fill="#f8fafc" />
@@ -151,33 +172,9 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
                         outline: 'none',
                       },
                     }}
-                    onMouseEnter={(event) => {
-                      const tooltip = getTooltipContent(geo);
-                      // Create a simple tooltip
-                      const tooltipEl = document.createElement('div');
-                      tooltipEl.innerHTML = tooltip;
-                      tooltipEl.style.position = 'fixed';
-                      tooltipEl.style.background = 'rgba(15, 23, 42, 0.95)';
-                      tooltipEl.style.color = 'white';
-                      tooltipEl.style.padding = '8px 12px';
-                      tooltipEl.style.borderRadius = '6px';
-                      tooltipEl.style.fontSize = '12px';
-                      tooltipEl.style.pointerEvents = 'none';
-                      tooltipEl.style.zIndex = '1000';
-                      tooltipEl.style.left = `${event.pageX + 10}px`;
-                      tooltipEl.style.top = `${event.pageY - 10}px`;
-                      tooltipEl.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
-                      tooltipEl.style.border = '1px solid rgba(255, 255, 255, 0.1)';
-                      tooltipEl.id = 'map-tooltip';
-                      document.body.appendChild(tooltipEl);
-                    }}
-                    onMouseMove={(event) => handleMouseMove(event, geo)}
-                    onMouseLeave={() => {
-                      const tooltip = document.getElementById('map-tooltip');
-                      if (tooltip) {
-                        document.body.removeChild(tooltip);
-                      }
-                    }}
+                    onMouseEnter={(event) => handleMouseEnter(event, geo)}
+                    onMouseMove={handleMouseMove}
+                    onMouseLeave={handleMouseLeave}
                   />
                 );
               })
@@ -201,6 +198,19 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
           <span className="font-medium">More visitors</span>
         </div>
       </div>
+
+      {/* Tooltip */}
+      {tooltip && tooltip.visible && (
+        <div
+          className="fixed z-50 pointer-events-none bg-slate-900 text-white px-3 py-2 rounded-lg shadow-xl border border-slate-700 text-sm"
+          style={{
+            left: tooltip.x,
+            top: tooltip.y,
+          }}
+        >
+          {tooltip.content}
+        </div>
+      )}
     </div>
   );
 }
