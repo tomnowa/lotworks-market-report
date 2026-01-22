@@ -1321,6 +1321,37 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
 
   // Use the cities data directly
   const displayCities = cities;
+
+  // Custom tick component for city names with countries
+  const CityTick = (props: any) => {
+    const { x, y, payload } = props;
+    const cityData = displayCities.slice(citiesPage * CITIES_PER_PAGE, (citiesPage + 1) * CITIES_PER_PAGE)[payload.index];
+    if (!cityData) return null;
+
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text
+          x={-10}
+          y={-5}
+          textAnchor="end"
+          fontSize={11}
+          fill="#64748b"
+          fontWeight="500"
+        >
+          {cityData.city}
+        </text>
+        <text
+          x={-10}
+          y={8}
+          textAnchor="end"
+          fontSize={9}
+          fill="#94a3b8"
+        >
+          {cityData.country}
+        </text>
+      </g>
+    );
+  };
   const isUsingMockData = false;
 
   const maxDayClicks = Math.max(...clicksByDay.map(d => d.clicks), 1);
@@ -1494,7 +1525,7 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
                 <BarChart
                   data={displayCities.slice(citiesPage * CITIES_PER_PAGE, (citiesPage + 1) * CITIES_PER_PAGE)}
                   layout="vertical"
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  margin={{ top: 5, right: 30, left: 30, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
                   <XAxis
@@ -1506,10 +1537,11 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
                   <YAxis
                     type="category"
                     dataKey="city"
-                    tick={{ fontSize: 11, fill: '#64748b' }}
+                    tick={<CityTick />}
                     tickLine={false}
                     axisLine={false}
-                    width={90}
+                    width={110}
+                    interval={0}
                   />
                   <Tooltip content={<ChartTooltipWithPercent showPercent />} />
                   <Bar dataKey="users" name="Users" fill="#3b82f6" radius={[0, 4, 4, 0]} />
