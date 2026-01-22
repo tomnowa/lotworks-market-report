@@ -1365,152 +1365,7 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
 
   return (
     <div className="space-y-6">
-      {/* Row 1: Day of Week + Device */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard 
-          title="Lot Clicks by Day" 
-          subtitle="When users engage most"
-          isEmpty={clicksByDay.length === 0}
-          height="h-72"
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={clicksByDayWithPercent}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-              <XAxis 
-                dataKey="day" 
-                tick={{ fontSize: 11, fill: '#64748b' }} 
-                tickLine={false}
-                tickFormatter={v => v?.slice(0, 3)}
-              />
-              <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
-              <Tooltip content={<ChartTooltipWithPercent showPercent />} />
-              <Bar dataKey="clicks" name="Clicks" radius={[4, 4, 0, 0]}>
-                {clicksByDayWithPercent.map((entry, i) => (
-                  <Cell key={i} fill={getHeatmapColor(entry.clicks, maxDayClicks, 'green')} stroke="#10b981" strokeWidth={1} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard title="Device Category" isEmpty={devices.length === 0} height="h-72">
-          <div className="flex items-center h-full">
-            <div className="w-1/2 h-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={devices}
-                    dataKey="users"
-                    nameKey="device"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={40}
-                    outerRadius={70}
-                    paddingAngle={2}
-                  >
-                    {devices.map((entry, i) => (
-                      <Cell key={i} fill={DEVICE_COLORS[entry.device] || CHART_COLORS[i]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="w-1/2 space-y-3">
-              {devices.map((d, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" 
-                       style={{ backgroundColor: `${DEVICE_COLORS[d.device] || CHART_COLORS[i]}15` }}>
-                    {d.device === 'Mobile' && <Icon path={mdiCellphone} size={1.25} color="#3b82f6" />}
-                    {d.device === 'Desktop' && <Icon path={mdiMonitor} size={1.25} color="#ef4444" />}
-                    {d.device === 'Tablet' && <Icon path={mdiTablet} size={1.25} color="#f59e0b" />}
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-slate-800">{d.device}</div>
-                    <div className="text-sm text-slate-500">{d.users.toLocaleString()} users</div>
-                  </div>
-                  <div className="text-xl font-bold text-slate-800">{d.percentage}%</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </ChartCard>
-      </div>
-
-      {/* Row 2: Countries + Browsers */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        <ChartCard title="Browser Usage" isEmpty={browsers.length === 0} height="h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={browsers.slice(0, 6)} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 10, fill: '#64748b' }} tickLine={false} />
-              <YAxis 
-                type="category" 
-                dataKey="browser" 
-                tick={{ fontSize: 11, fill: '#64748b' }} 
-                tickLine={false} 
-                axisLine={false} 
-                width={70}
-              />
-              <Tooltip content={<ChartTooltipWithPercent showPercent />} />
-              <Bar dataKey="users" name="Users" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      </div>
-
-      {/* Row 3: OS + Traffic Sources */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* OS Breakdown */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          <SectionHeader title="Operating System" subtitle="User platform distribution" />
-          <div className="space-y-4">
-            {osList.slice(0, 6).map((os, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <span className="w-20 text-sm text-slate-700 font-medium truncate" title={os.os}>{os.os}</span>
-                <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${os.percentage}%`,
-                      backgroundColor: CHART_COLORS[i % CHART_COLORS.length]
-                    }}
-                  />
-                </div>
-                <span className="w-24 text-sm text-slate-600 text-right">
-                  {formatCompactNumber(os.users)} <span className="text-slate-400">({os.percentage}%)</span>
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Traffic Sources */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          <SectionHeader title="Traffic Sources" subtitle="Where visitors came from" />
-          {traffic.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="space-y-3">
-              {traffic.slice(0, 5).map((t, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-slate-800 truncate">{t.source}</div>
-                    <div className="text-xs text-slate-500">{t.medium}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold text-slate-800">{t.sessions.toLocaleString()}</div>
-                    <div className="text-xs text-slate-500">{t.percentage}%</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Row 4: Top Cities + Active Users by Country Map */}
+      {/* Row 1: Top Cities + Active Users by Country Map */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartCard
           title="Top Cities"
@@ -1608,6 +1463,147 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
               </>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Row 2: Device Category, Operating System, Browser Usage */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <ChartCard title="Device Category" isEmpty={devices.length === 0} height="h-72">
+          <div className="flex items-center h-full">
+            <div className="w-1/2 h-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={devices}
+                    dataKey="users"
+                    nameKey="device"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={70}
+                    paddingAngle={2}
+                  >
+                    {devices.map((entry, i) => (
+                      <Cell key={i} fill={DEVICE_COLORS[entry.device] || CHART_COLORS[i]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="w-1/2 space-y-3">
+              {devices.map((d, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center"
+                       style={{ backgroundColor: `${DEVICE_COLORS[d.device] || CHART_COLORS[i]}15` }}>
+                    {d.device === 'Mobile' && <Icon path={mdiCellphone} size={1.25} color="#3b82f6" />}
+                    {d.device === 'Desktop' && <Icon path={mdiMonitor} size={1.25} color="#ef4444" />}
+                    {d.device === 'Tablet' && <Icon path={mdiTablet} size={1.25} color="#f59e0b" />}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-slate-800">{d.device}</div>
+                    <div className="text-sm text-slate-500">{d.users.toLocaleString()} users</div>
+                  </div>
+                  <div className="text-xl font-bold text-slate-800">{d.percentage}%</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </ChartCard>
+
+        {/* OS Breakdown */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <SectionHeader title="Operating System" subtitle="User platform distribution" />
+          <div className="space-y-4">
+            {osList.slice(0, 6).map((os, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="w-20 text-sm text-slate-700 font-medium truncate" title={os.os}>{os.os}</span>
+                <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${os.percentage}%`,
+                      backgroundColor: CHART_COLORS[i % CHART_COLORS.length]
+                    }}
+                  />
+                </div>
+                <span className="w-24 text-sm text-slate-600 text-right">
+                  {formatCompactNumber(os.users)} <span className="text-slate-400">({os.percentage}%)</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <ChartCard title="Browser Usage" isEmpty={browsers.length === 0} height="h-72">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={browsers.slice(0, 6)} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 10, fill: '#64748b' }} tickLine={false} />
+              <YAxis
+                type="category"
+                dataKey="browser"
+                tick={{ fontSize: 11, fill: '#64748b' }}
+                tickLine={false}
+                axisLine={false}
+                width={70}
+              />
+              <Tooltip content={<ChartTooltipWithPercent showPercent />} />
+              <Bar dataKey="users" name="Users" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+      </div>
+
+      {/* Row 3: Lot Clicks by Day and Traffic Sources */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ChartCard
+          title="Lot Clicks by Day"
+          subtitle="When users engage most"
+          isEmpty={clicksByDay.length === 0}
+          height="h-72"
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={clicksByDayWithPercent}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+              <XAxis
+                dataKey="day"
+                tick={{ fontSize: 11, fill: '#64748b' }}
+                tickLine={false}
+                tickFormatter={v => v?.slice(0, 3)}
+              />
+              <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
+              <Tooltip content={<ChartTooltipWithPercent showPercent />} />
+              <Bar dataKey="clicks" name="Clicks" radius={[4, 4, 0, 0]}>
+                {clicksByDayWithPercent.map((entry, i) => (
+                  <Cell key={i} fill={getHeatmapColor(entry.clicks, maxDayClicks, 'green')} stroke="#10b981" strokeWidth={1} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        {/* Traffic Sources */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <SectionHeader title="Traffic Sources" subtitle="Where visitors came from" />
+          {traffic.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="space-y-3">
+              {traffic.slice(0, 5).map((t, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-slate-800 truncate">{t.source}</div>
+                    <div className="text-xs text-slate-500">{t.medium}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-slate-800">{t.sessions.toLocaleString()}</div>
+                    <div className="text-xs text-slate-500">{t.percentage}%</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
