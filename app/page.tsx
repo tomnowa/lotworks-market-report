@@ -28,7 +28,6 @@ import {
   mdiFire,
   mdiLightbulb,
   mdiAlert,
-  mdiChartBar,
   mdiFileAlert,
   mdiInformation,
   mdiViewDashboard,
@@ -36,16 +35,10 @@ import {
   mdiChartPie,
   mdiMenu,
   mdiClose,
-  mdiFilter,
   mdiBellRing,
   mdiEmail,
   mdiCheck,
-  mdiAccountGroup,
-  mdiAccountArrowRight,
-  mdiChartLineVariant,
   mdiPulse,
-  mdiCalendarClock,
-  mdiSpeedometer,
 } from '@mdi/js';
 import {
   LineChart,
@@ -115,6 +108,14 @@ const TABS: TabConfig[] = [
   { id: 'overview', label: 'Overview', icon: mdiViewDashboard, description: 'Executive Summary' },
   { id: 'details', label: 'Map Details', icon: mdiMap, description: 'Communities & Lots' },
   { id: 'analytics', label: 'Analytics', icon: mdiChartPie, description: 'Traffic & Demographics' },
+];
+
+const LOADING_SUBTITLES = [
+  "Fetching analytics data from your maps...",
+  "Crunching the numbers...",
+  "Analyzing community performance...",
+  "Generating AI insights...",
+  "Almost there..."
 ];
 
 // ============================================================================
@@ -1437,19 +1438,14 @@ function OverviewContent({ report }: { report: MarketReport }) {
     [communityPerf]
   );
   
+  // Reset selected communities when the organization/data changes
   useEffect(() => {
     if (topCommunities.length > 0) {
       setSelectedCommunities(topCommunities.slice(0, Math.min(5, topCommunities.length)));
     } else {
       setSelectedCommunities([]);
     }
-  }, [orgName]);
-  
-  useEffect(() => {
-    if (topCommunities.length > 0 && selectedCommunities.length === 0) {
-      setSelectedCommunities(topCommunities.slice(0, Math.min(5, topCommunities.length)));
-    }
-  }, [topCommunities, selectedCommunities.length]);
+  }, [topCommunities]);
   
   const visibleCommunities = selectedCommunities.length > 0 
     ? selectedCommunities.filter(c => topCommunities.includes(c)) 
@@ -1671,23 +1667,6 @@ function MapDetailsContent({
   
   const maxMapLoads = Math.max(...communityPerf.map(c => c.mapLoads), 1);
   const maxLotClicks = Math.max(...communityPerf.map(c => c.lotClicks), 1);
-  
-  // Community filter dropdown
-  const CommunityFilter = (
-    <div className="relative">
-      <button
-        onClick={() => {}}
-        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm hover:bg-slate-50"
-      >
-        <Icon path={mdiFilter} size={0.75} color="#64748b" />
-        <span className="text-slate-700">
-          {selectedCommunities.length === 0 
-            ? 'All Communities' 
-            : `${selectedCommunities.length} selected`}
-        </span>
-      </button>
-    </div>
-  );
 
   return (
     <div className="space-y-6">
@@ -2209,22 +2188,15 @@ export default function InsightsPage() {
   });
   
   // Loading animation
-  const loadingSubtitles = [
-    "Fetching analytics data from your maps...",
-    "Crunching the numbers...",
-    "Analyzing community performance...",
-    "Generating AI insights...",
-    "Almost there..."
-  ];
   const [currentSubtitleIndex, setCurrentSubtitleIndex] = useState(0);
   
   useEffect(() => {
     if (!loading) return;
     const interval = setInterval(() => {
-      setCurrentSubtitleIndex((prev) => (prev + 1) % loadingSubtitles.length);
+      setCurrentSubtitleIndex((prev) => (prev + 1) % LOADING_SUBTITLES.length);
     }, 2000);
     return () => clearInterval(interval);
-  }, [loading, loadingSubtitles.length]);
+  }, [loading]);
   
   // UI State
   const [activeTab, setActiveTab] = useState<TabId>('overview');
@@ -2308,7 +2280,7 @@ export default function InsightsPage() {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-4" style={{ borderColor: '#4B5FD7', borderTopColor: 'transparent' }} />
           <p className="text-slate-600 font-medium">Loading LotWorks Insights...</p>
-          <p className="text-slate-400 text-sm mt-1">{loadingSubtitles[currentSubtitleIndex]}</p>
+          <p className="text-slate-400 text-sm mt-1">{LOADING_SUBTITLES[currentSubtitleIndex]}</p>
         </div>
       </div>
     );
