@@ -130,7 +130,7 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
   };
 
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full relative overflow-x-auto">
       <ComposableMap
         projection="geoMercator"
         projectionConfig={{
@@ -139,7 +139,7 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
         }}
         width={800}
         height={400}
-        style={{ width: '100%', height: '100%' }}
+        style={{ width: '800px', height: '100%', minWidth: '800px' }}
       >
         <Sphere id="sphere" stroke="#e2e8f0" strokeWidth={0.5} fill="#f8fafc" />
         <Geographies geography={geoUrl}>

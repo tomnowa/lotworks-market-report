@@ -1585,12 +1585,12 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
               <EmptyState message="No country data available" />
             </div>
           ) : (
-            <div className="space-y-3">
-              <div className="h-[350px]">
+            <div className="flex flex-col h-full">
+              <div className="flex-1 overflow-hidden">
                 <ChoroplethMap data={countries} />
               </div>
               {/* Legend */}
-              <div className="bg-white rounded-lg p-3 border border-slate-200 shadow-sm">
+              <div className="flex-shrink-0 p-3">
                 <div className="flex items-center justify-center gap-3 text-xs text-slate-700">
                   <span className="font-medium">Less visitors</span>
                   <div className="flex gap-1">
