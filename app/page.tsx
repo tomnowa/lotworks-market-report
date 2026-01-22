@@ -18,6 +18,7 @@ import {
   mdiMonitor,
   mdiCellphone,
   mdiTablet,
+  mdiTelevision,
   mdiTrendingUp,
   mdiTrendingDown,
   mdiChevronLeft,
@@ -90,6 +91,7 @@ const DEVICE_COLORS: Record<string, string> = {
   Mobile: '#3b82f6',
   Desktop: '#ef4444',
   Tablet: '#f59e0b',
+  'Smart TV': '#8b5cf6',
 };
 
 type TabId = 'overview' | 'details' | 'analytics';
@@ -1499,6 +1501,7 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
                     {d.device === 'Mobile' && <Icon path={mdiCellphone} size={1.25} color="#3b82f6" />}
                     {d.device === 'Desktop' && <Icon path={mdiMonitor} size={1.25} color="#ef4444" />}
                     {d.device === 'Tablet' && <Icon path={mdiTablet} size={1.25} color="#f59e0b" />}
+                    {d.device === 'Smart TV' && <Icon path={mdiTelevision} size={1.25} color="#8b5cf6" />}
                   </div>
                   <div className="flex-1">
                     <div className="font-medium text-slate-800">{d.device}</div>
