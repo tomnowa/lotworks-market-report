@@ -109,19 +109,21 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
 
   const handleMouseEnter = (event: React.MouseEvent, geo: any) => {
     const content = getTooltipContent(geo);
+    const rect = (event.currentTarget as Element).getBoundingClientRect();
     setTooltip({
       content,
-      x: event.pageX + 10,
-      y: event.pageY - 10,
+      x: event.clientX - rect.left + 10,
+      y: event.clientY - rect.top - 10,
       visible: true,
     });
   };
 
   const handleMouseMove = (event: React.MouseEvent) => {
+    const rect = (event.currentTarget as Element).getBoundingClientRect();
     setTooltip(prev => prev ? {
       ...prev,
-      x: event.pageX + 10,
-      y: event.pageY - 10,
+      x: event.clientX - rect.left + 10,
+      y: event.clientY - rect.top - 10,
     } : null);
   };
 
@@ -130,79 +132,60 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
   };
 
   return (
-    <div className="w-full h-full flex flex-col relative">
-      {/* Map Container */}
-      <div className="flex-1 relative min-h-0">
-        <ComposableMap
-          projection="geoMercator"
-          projectionConfig={{
-            scale: 120,
-            center: [0, 20],
-          }}
-          width={800}
-          height={400}
-          style={{ width: '100%', height: '100%' }}
-        >
-          <Sphere id="sphere" stroke="#e2e8f0" strokeWidth={0.5} fill="#f8fafc" />
-          <Geographies geography={geoUrl}>
-            {({ geographies }) =>
-              geographies.map((geo) => {
-                const countryName = geo.properties.NAME || geo.properties.name;
-                const countryData = countryDataMap[countryName];
+    <div className="w-full h-full relative">
+      <ComposableMap
+        projection="geoMercator"
+        projectionConfig={{
+          scale: 120,
+          center: [0, 20],
+        }}
+        width={800}
+        height={400}
+        style={{ width: '100%', height: '100%' }}
+      >
+        <Sphere id="sphere" stroke="#e2e8f0" strokeWidth={0.5} fill="#f8fafc" />
+        <Geographies geography={geoUrl}>
+          {({ geographies }) =>
+            geographies.map((geo) => {
+              const countryName = geo.properties.NAME || geo.properties.name;
+              const countryData = countryDataMap[countryName];
 
-                return (
-                  <Geography
-                    key={geo.rsmKey}
-                    geography={geo}
-                    fill={getCountryColor(geo)}
-                    stroke="#334155"
-                    strokeWidth={0.3}
-                    style={{
-                      default: {
-                        outline: 'none',
-                      },
-                      hover: {
-                        outline: 'none',
-                        fill: countryData ? '#1e40af' : '#e2e8f0',
-                        stroke: '#1e293b',
-                        strokeWidth: 0.8,
-                        cursor: 'pointer',
-                      },
-                      pressed: {
-                        outline: 'none',
-                      },
-                    }}
-                    onMouseEnter={(event) => handleMouseEnter(event, geo)}
-                    onMouseMove={handleMouseMove}
-                    onMouseLeave={handleMouseLeave}
-                  />
-                );
-              })
-            }
-          </Geographies>
-        </ComposableMap>
-      </div>
-
-      {/* Legend below the map */}
-      <div className="flex-shrink-0 mt-2 bg-white rounded-lg p-3 border border-slate-200 shadow-sm">
-        <div className="flex items-center justify-center gap-3 text-xs text-slate-700">
-          <span className="font-medium">Less visitors</span>
-          <div className="flex gap-1">
-            <div className="w-3 h-3 rounded-sm border border-slate-300" style={{ backgroundColor: '#e2e8f0' }}></div>
-            <div className="w-3 h-3 rounded-sm border border-slate-300" style={{ backgroundColor: '#bfdbfe' }}></div>
-            <div className="w-3 h-3 rounded-sm border border-slate-300" style={{ backgroundColor: '#93c5fd' }}></div>
-            <div className="w-3 h-3 rounded-sm border border-slate-300" style={{ backgroundColor: '#60a5fa' }}></div>
-            <div className="w-3 h-3 rounded-sm border border-slate-300" style={{ backgroundColor: '#3b82f6' }}></div>
-            <div className="w-3 h-3 rounded-sm border border-slate-300" style={{ backgroundColor: '#1e40af' }}></div>
-          </div>
-          <span className="font-medium">More visitors</span>
-        </div>
-      </div>
+              return (
+                <Geography
+                  key={geo.rsmKey}
+                  geography={geo}
+                  fill={getCountryColor(geo)}
+                  stroke="#334155"
+                  strokeWidth={0.3}
+                  style={{
+                    default: {
+                      outline: 'none',
+                    },
+                    hover: {
+                      outline: 'none',
+                      fill: countryData ? '#1e40af' : '#e2e8f0',
+                      stroke: '#1e293b',
+                      strokeWidth: 0.8,
+                      cursor: 'pointer',
+                    },
+                    pressed: {
+                      outline: 'none',
+                    },
+                  }}
+                  onMouseEnter={(event) => handleMouseEnter(event, geo)}
+                  onMouseMove={handleMouseMove}
+                  onMouseLeave={handleMouseLeave}
+                />
+              );
+            })
+          }
+        </Geographies>
+      </ComposableMap>
 
       {/* Tooltip */}
       {tooltip && tooltip.visible && (
         <div
-          className="fixed z-50 pointer-events-none bg-slate-900 text-white px-3 py-2 rounded-lg shadow-xl border border-slate-700 text-sm"
+          className="absolute z-50 pointer-events-none bg-slate-900 text-white px-3 py-2 rounded-lg shadow-xl border border-slate-700 text-sm"
           style={{
             left: tooltip.x,
             top: tooltip.y,

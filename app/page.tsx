@@ -1580,13 +1580,32 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
             title="Active Users by Country"
             subtitle={`${countries.length} countries tracked`}
           />
-          <div className="h-[400px]">
-            {countries.length === 0 ? (
+          {countries.length === 0 ? (
+            <div className="h-[400px] flex items-center justify-center">
               <EmptyState message="No country data available" />
-            ) : (
-              <ChoroplethMap data={countries} />
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="h-[350px]">
+                <ChoroplethMap data={countries} />
+              </div>
+              {/* Legend */}
+              <div className="bg-white rounded-lg p-3 border border-slate-200 shadow-sm">
+                <div className="flex items-center justify-center gap-3 text-xs text-slate-700">
+                  <span className="font-medium">Less visitors</span>
+                  <div className="flex gap-1">
+                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#e2e8f0' }}></div>
+                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#bfdbfe' }}></div>
+                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#93c5fd' }}></div>
+                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#60a5fa' }}></div>
+                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#3b82f6' }}></div>
+                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#1e40af' }}></div>
+                  </div>
+                  <span className="font-medium">More visitors</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
