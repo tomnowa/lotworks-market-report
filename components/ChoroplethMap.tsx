@@ -68,7 +68,7 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
 
     return scaleLog<string>()
       .domain([minValue, maxValue])
-      .range(['#fef2f2', '#dc2626']) // Light red to dark red (heatmap)
+      .range(['#f1f5f9', '#4b5fd7']) // Light gray to brand color
       .clamp(true); // Clamp values to range
   }, [data]);
 
@@ -161,8 +161,8 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
                     },
                     hover: {
                       outline: 'none',
-                      fill: countryData ? '#1e40af' : '#e2e8f0',
-                      stroke: '#1e293b',
+                      fill: countryData ? '#3b4fb7' : '#e2e8f0', // Darker shade of brand color
+                      stroke: '#2d3a5c',
                       strokeWidth: 0.8,
                       cursor: 'pointer',
                     },
