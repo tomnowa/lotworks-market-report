@@ -6,9 +6,8 @@ import {
   Geographies,
   Geography,
   Sphere,
-  Graticule,
 } from 'react-simple-maps';
-import { scaleLinear, scaleLog } from 'd3-scale';
+import { scaleLog } from 'd3-scale';
 
 // World map topology data (simplified for performance)
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
@@ -38,9 +37,9 @@ const COUNTRY_NAME_MAPPING: Record<string, string> = {
   'Western Sahara': 'W. Sahara',
   'Solomon Islands': 'Solomon Is.',
   'French Southern and Antarctic Lands': 'Fr. S. Antarctic Lands',
-  'Somaliland': 'Somalia', // Approximate
+  'Somaliland': 'Somalia',
   'Kosovo': 'Kosovo',
-  'Northern Cyprus': 'Cyprus', // Approximate
+  'Northern Cyprus': 'Cyprus',
 };
 
 interface ChoroplethMapProps {
@@ -61,15 +60,13 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
     const minPercent = Math.min(...percentages);
     const maxPercent = Math.max(...percentages);
 
-    // Use logarithmic scale for better differentiation of smaller values
-    // Add small epsilon to avoid log(0)
     const minValue = Math.max(minPercent, 0.01);
     const maxValue = Math.max(maxPercent, minValue + 0.01);
 
     return scaleLog<string>()
       .domain([minValue, maxValue])
-      .range(['#f1f5f9', '#4b5fd7']) // Light gray to brand color
-      .clamp(true); // Clamp values to range
+      .range(['#f1f5f9', '#4b5fd7'])
+      .clamp(true);
   }, [data]);
 
   // Create a lookup map for quick country data access
@@ -78,7 +75,6 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
     data.forEach(country => {
       const mappedName = COUNTRY_NAME_MAPPING[country.country] || country.country;
       map[mappedName] = country;
-      // Also store with original name as fallback
       map[country.country] = country;
     });
     return map;
@@ -92,7 +88,6 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
       return colorScale(countryData.percentage);
     }
 
-    // Default color for countries without data
     return '#f8fafc';
   };
 
@@ -130,16 +125,17 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
   };
 
   return (
-    <div className="w-full h-full relative overflow-x-auto">
+    <div className="w-full h-full relative">
       <ComposableMap
         projection="geoMercator"
         projectionConfig={{
           scale: 120,
-          center: [0, 20],
+          center: [0, 30],
         }}
-        width={800}
-        height={400}
-        style={{ width: '800px', height: '100%', minWidth: '800px' }}
+        style={{
+          width: '100%',
+          height: '100%',
+        }}
       >
         <Sphere id="sphere" stroke="#e2e8f0" strokeWidth={0.5} fill="#f8fafc" />
         <Geographies geography={geoUrl}>
@@ -161,7 +157,7 @@ export default function ChoroplethMap({ data }: ChoroplethMapProps) {
                     },
                     hover: {
                       outline: 'none',
-                      fill: countryData ? '#3b4fb7' : '#e2e8f0', // Darker shade of brand color
+                      fill: countryData ? '#3b4fb7' : '#e2e8f0',
                       stroke: '#2d3a5c',
                       strokeWidth: 0.8,
                       cursor: 'pointer',

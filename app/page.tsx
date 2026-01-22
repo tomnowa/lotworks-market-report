@@ -1432,39 +1432,37 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
           )}
         </ChartCard>
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col">
           <SectionHeader
             title="Active Users by Country"
             subtitle={`${countries.length} countries tracked`}
           />
-          <div className="h-[400px] flex flex-col">
-            {countries.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center">
-                <EmptyState message="No country data available" />
+          {countries.length === 0 ? (
+            <div className="h-[350px] flex items-center justify-center">
+              <EmptyState message="No country data available" />
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 min-h-[300px]">
+                <ChoroplethMap data={countries} />
               </div>
-            ) : (
-              <>
-                <div className="flex-1 overflow-hidden">
-                  <ChoroplethMap data={countries} />
-                </div>
-                {/* Legend */}
-                <div className="flex-shrink-0 p-3">
-                  <div className="flex items-center justify-center gap-3 text-xs text-slate-700">
-                    <span className="font-medium">Less visitors</span>
-                    <div className="flex gap-1">
-                      <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#f1f5f9' }}></div>
-                      <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#e2e8f0' }}></div>
-                      <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#cbd5e1' }}></div>
-                      <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#94a3b8' }}></div>
-                      <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#64748b' }}></div>
-                      <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#4b5fd7' }}></div>
-                    </div>
-                    <span className="font-medium">More visitors</span>
+              {/* Legend */}
+              <div className="pt-4 mt-auto">
+                <div className="flex items-center justify-center gap-3 text-xs text-slate-700">
+                  <span className="font-medium">Less visitors</span>
+                  <div className="flex gap-1">
+                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#f1f5f9' }}></div>
+                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#e2e8f0' }}></div>
+                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#cbd5e1' }}></div>
+                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#94a3b8' }}></div>
+                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#64748b' }}></div>
+                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#4b5fd7' }}></div>
                   </div>
+                  <span className="font-medium">More visitors</span>
                 </div>
-              </>
-            )}
-          </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
