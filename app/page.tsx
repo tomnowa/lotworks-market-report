@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-// MDI Icons imported from @mdi/js above
 import Icon from '@mdi/react';
 import {
   mdiRobotExcitedOutline,
@@ -38,6 +37,15 @@ import {
   mdiMenu,
   mdiClose,
   mdiFilter,
+  mdiBellRing,
+  mdiEmail,
+  mdiCheck,
+  mdiAccountGroup,
+  mdiAccountArrowRight,
+  mdiChartLineVariant,
+  mdiPulse,
+  mdiCalendarClock,
+  mdiSpeedometer,
 } from '@mdi/js';
 import {
   LineChart,
@@ -233,158 +241,870 @@ function EmptyState({ message = "No data available" }: { message?: string }) {
   return (
     <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-slate-400">
       <Icon path={mdiFileAlert} size={2.5} color="#64748b" style={{ opacity: 0.5 }} />
-      <p className="text-sm">{message}</p>
+      <p className="mt-3 text-slate-500 text-sm">{message}</p>
     </div>
   );
 }
 
-function ChartTooltipWithPercent({ active, payload, label, showPercent = false }: { active?: boolean; payload?: Array<{ color: string; name: string; value: number; payload?: Record<string, unknown> }>; label?: string; showPercent?: boolean }) {
-  if (!active || !payload?.length) return null;
-  
+function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <div className="bg-slate-900 text-white px-4 py-3 rounded-lg shadow-2xl border border-slate-700 max-w-xs">
-      <p className="font-semibold text-sm mb-2 text-slate-200">{label}</p>
-      {payload.map((entry, i) => {
-        const percentage = entry.payload?.percentage as number | undefined;
-        return (
-          <div key={i} className="flex items-center gap-2 text-sm py-0.5">
-            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
-            <span className="text-slate-400 truncate">{entry.name}:</span>
-            <span className="font-bold ml-auto">
-              {entry.value?.toLocaleString()}
-              {showPercent && typeof percentage === 'number' ? (
-                <span className="text-slate-400 ml-1">({percentage}%)</span>
-              ) : null}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function StatCard({
-  title,
-  value,
-  change,
-  icon: iconPath,
-  accent = false,
-  tooltip,
-}: {
-  title: string;
-  value: string | number;
-  change?: number;
-  icon: string;
-  accent?: boolean;
-  tooltip?: string;
-}) {
-  const hasChange = change !== undefined && !isNaN(change);
-  const isPositive = hasChange && change >= 0;
-  const displayValue = typeof value === 'number' ? value.toLocaleString() : value;
-  
-  return (
-    <div
-      className={`rounded-2xl p-5 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 relative group ${
-        accent
-          ? 'text-white shadow-lg border'
-          : 'bg-white border border-slate-200 shadow-sm hover:border-slate-300'
-      }`}
-      style={accent ? { backgroundColor: '#192a54', borderColor: '#192a54' } : {}}
-    >
-      {tooltip && (
-        <div className="absolute bottom-full left-0 right-0 mb-2 mx-1 px-3 py-2 bg-slate-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 text-center">
-          {tooltip}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
-        </div>
-      )}
-      <div className="flex items-start justify-between mb-3">
-        <div className={`p-2.5 rounded-xl ${accent ? 'bg-lime-400/20' : 'bg-emerald-50'}`}>
-          <Icon path={iconPath} size={1} color={accent ? '#DBDB34' : '#4B5FD7'} />
-        </div>
-        {hasChange && (
-          <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg ${
-            isPositive ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'
-          }`}>
-            {isPositive ? <Icon path={mdiTrendingUp} size={0.75} /> : <Icon path={mdiTrendingDown} size={0.75} />}
-            {Math.abs(change).toFixed(1)}%
-          </div>
-        )}
-      </div>
-      <div className={`text-3xl font-bold mb-1 tracking-tight ${accent ? 'text-white' : 'text-slate-800'}`}>
-        {displayValue}
-      </div>
-      <div className={`text-sm font-medium ${accent ? 'text-slate-400' : 'text-slate-500'}`}>{title}</div>
-    </div>
-  );
-}
-
-function InsightCard({ type, title, description }: { type: string; title: string; description: string }) {
-  const configs: Record<string, { icon: string; bg: string; border: string; iconBg: string }> = {
-    trending: { icon: mdiTrendingUp, bg: 'bg-emerald-50', border: 'border-emerald-200', iconBg: 'bg-emerald-100 text-emerald-600' },
-    hot: { icon: mdiFire, bg: 'bg-orange-50', border: 'border-orange-200', iconBg: 'bg-orange-100 text-orange-600' },
-    opportunity: { icon: mdiLightbulb, bg: 'bg-blue-50', border: 'border-blue-200', iconBg: 'bg-blue-100 text-blue-600' },
-    warning: { icon: mdiAlert, bg: 'bg-amber-50', border: 'border-amber-200', iconBg: 'bg-amber-100 text-amber-600' },
-  };
-  
-  const config = configs[type] || configs.trending;
-
-  return (
-    <div className={`rounded-xl p-4 border transition-all duration-200 hover:shadow-md ${config.bg} ${config.border}`}>
-      <div className="flex gap-3">
-        <div className={`p-2 rounded-lg h-fit flex-shrink-0 ${config.iconBg}`}>
-          <Icon path={config.icon} size={1} />
-        </div>
-        <div className="min-w-0">
-          <div className="font-semibold text-slate-800 mb-1 leading-tight">{title}</div>
-          <div className="text-sm text-slate-600 leading-relaxed">{description}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SectionHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between mb-4">
-      <div>
-        <h2 className="text-lg font-bold text-slate-800">{title}</h2>
-        {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
-      </div>
-      {action}
+    <div className="mb-4">
+      <h3 className="text-lg font-semibold text-slate-800">{title}</h3>
+      {subtitle && <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>}
     </div>
   );
 }
 
 function ChartCard({ 
   title, 
-  subtitle, 
+  subtitle,
   children, 
   isEmpty = false,
-  className = "",
-  height = "h-64",
-  action
+  height = "h-64"
 }: { 
   title: string; 
-  subtitle?: string; 
-  children: React.ReactNode; 
+  subtitle?: string;
+  children: React.ReactNode;
   isEmpty?: boolean;
-  className?: string;
   height?: string;
-  action?: React.ReactNode;
 }) {
-  // Convert Tailwind height class to inline style if it's an arbitrary value
-  const heightStyle = height.startsWith('h-[') 
-    ? { height: height.match(/\[(.*?)\]/)?.[1] || '400px', minHeight: height.match(/\[(.*?)\]/)?.[1] || '400px' }
-    : {};
+  return (
+    <div className={`bg-white rounded-2xl border border-slate-200 p-6 shadow-sm ${height}`}>
+      <SectionHeader title={title} subtitle={subtitle} />
+      {isEmpty ? <EmptyState /> : children}
+    </div>
+  );
+}
+
+function ChartTooltipWithPercent({ active, payload, label, showPercent = false }: any) {
+  if (!active || !payload || !payload.length) return null;
+  return (
+    <div className="bg-slate-800 text-white px-3 py-2 rounded-lg shadow-xl text-sm">
+      <div className="font-semibold mb-1">{label}</div>
+      {payload.map((p: any, i: number) => (
+        <div key={i} className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
+          <span className="text-slate-300">{p.name}:</span>
+          <span className="font-medium">{p.value?.toLocaleString()}</span>
+          {showPercent && p.payload?.percentage != null && (
+            <span className="text-slate-400">({p.payload.percentage}%)</span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StatCard({ 
+  title, 
+  value, 
+  change, 
+  icon, 
+  accent = false,
+  tooltip 
+}: { 
+  title: string; 
+  value: string | number; 
+  change?: number;
+  icon: string;
+  accent?: boolean;
+  tooltip?: string;
+}) {
+  const isPositive = change !== undefined && change > 0;
+  const isNegative = change !== undefined && change < 0;
   
   return (
-    <div className={`bg-white rounded-2xl border border-slate-200 p-6 shadow-sm ${className}`}>
-      <SectionHeader title={title} subtitle={subtitle} action={action} />
-      <div className={height.startsWith('h-[') ? '' : height} style={Object.keys(heightStyle).length > 0 ? heightStyle : undefined}>
-        {isEmpty ? <EmptyState /> : children}
+    <div 
+      className={`rounded-2xl p-5 transition-all ${
+        accent 
+          ? 'text-white shadow-lg' 
+          : 'bg-white border border-slate-200 shadow-sm'
+      }`}
+      style={accent ? { backgroundColor: '#4B5FD7' } : {}}
+      title={tooltip}
+    >
+      <div className="flex items-start justify-between">
+        <div>
+          <div className={`text-sm font-medium mb-1 ${accent ? 'text-white/80' : 'text-slate-500'}`}>
+            {title}
+          </div>
+          <div className={`text-3xl font-bold ${accent ? 'text-white' : 'text-slate-800'}`}>
+            {typeof value === 'number' ? value.toLocaleString() : value}
+          </div>
+          {change !== undefined && (
+            <div className={`flex items-center gap-1 mt-2 text-sm font-medium ${
+              accent 
+                ? (isPositive ? 'text-emerald-200' : isNegative ? 'text-red-200' : 'text-white/60')
+                : (isPositive ? 'text-emerald-600' : isNegative ? 'text-red-500' : 'text-slate-400')
+            }`}>
+              {change !== 0 && (
+                <Icon path={isPositive ? mdiTrendingUp : mdiTrendingDown} size={0.75} />
+              )}
+              <span>{isPositive ? '+' : ''}{change}% vs prev period</span>
+            </div>
+          )}
+        </div>
+        <div className={`p-2.5 rounded-xl ${accent ? 'bg-white/20' : 'bg-slate-100'}`}>
+          <Icon path={icon} size={1.25} color={accent ? 'white' : '#64748b'} />
+        </div>
       </div>
     </div>
   );
+}
+
+function InsightCard({ type, title, description }: { type: 'hot' | 'tip' | 'warning' | 'info'; title: string; description: string }) {
+  const config = {
+    hot: { icon: mdiFire, bg: 'bg-orange-50', border: 'border-orange-200', iconColor: '#f97316', titleColor: 'text-orange-800' },
+    tip: { icon: mdiLightbulb, bg: 'bg-emerald-50', border: 'border-emerald-200', iconColor: '#10b981', titleColor: 'text-emerald-800' },
+    warning: { icon: mdiAlert, bg: 'bg-amber-50', border: 'border-amber-200', iconColor: '#f59e0b', titleColor: 'text-amber-800' },
+    info: { icon: mdiInformation, bg: 'bg-blue-50', border: 'border-blue-200', iconColor: '#3b82f6', titleColor: 'text-blue-800' },
+  };
+  const c = config[type];
+  
+  return (
+    <div className={`rounded-xl p-4 ${c.bg} border ${c.border}`}>
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5">
+          <Icon path={c.icon} size={1} color={c.iconColor} />
+        </div>
+        <div>
+          <div className={`font-semibold ${c.titleColor}`}>{title}</div>
+          <div className="text-sm text-slate-600 mt-0.5">{description}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// EMAIL ALERTS SCHEDULER MODAL
+// ============================================================================
+
+interface AlertConfig {
+  enabled: boolean;
+  email: string;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  dayOfWeek?: number;
+  dayOfMonth?: number;
+  time: string;
+  alerts: {
+    mapLoadsDropped: boolean;
+    mapLoadsThreshold: number;
+    clickRateDropped: boolean;
+    clickRateThreshold: number;
+    newTopCommunity: boolean;
+    weeklyDigest: boolean;
+  };
+}
+
+function EmailSchedulerModal({ 
+  isOpen, 
+  onClose,
+  clientName 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void;
+  clientName: string;
+}) {
+  const [config, setConfig] = useState<AlertConfig>({
+    enabled: false,
+    email: '',
+    frequency: 'weekly',
+    dayOfWeek: 1, // Monday
+    dayOfMonth: 1,
+    time: '09:00',
+    alerts: {
+      mapLoadsDropped: true,
+      mapLoadsThreshold: 20,
+      clickRateDropped: true,
+      clickRateThreshold: 15,
+      newTopCommunity: true,
+      weeklyDigest: true,
+    }
+  });
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    // In production, this would call an API
+    console.log('Saving alert config:', config);
+    setSaved(true);
+    setTimeout(() => {
+      setSaved(false);
+      onClose();
+    }, 1500);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="p-6 border-b border-slate-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-indigo-100">
+                <Icon path={mdiBellRing} size={1.25} color="#4B5FD7" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Email Alerts</h2>
+                <p className="text-sm text-slate-500">Configure automated reports for {clientName}</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+              <Icon path={mdiClose} size={1} color="#64748b" />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6">
+          {/* Enable Toggle */}
+          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+            <div>
+              <div className="font-semibold text-slate-800">Enable Email Alerts</div>
+              <div className="text-sm text-slate-500">Receive automated insights in your inbox</div>
+            </div>
+            <button
+              onClick={() => setConfig(c => ({ ...c, enabled: !c.enabled }))}
+              className={`w-12 h-7 rounded-full transition-colors relative ${config.enabled ? 'bg-indigo-500' : 'bg-slate-300'}`}
+            >
+              <div className={`w-5 h-5 bg-white rounded-full shadow absolute top-1 transition-transform ${config.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+          </div>
+
+          {config.enabled && (
+            <>
+              {/* Email Input */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Email Address</label>
+                <div className="relative">
+                  <Icon path={mdiEmail} size={1} color="#94a3b8" className="absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    value={config.email}
+                    onChange={(e) => setConfig(c => ({ ...c, email: e.target.value }))}
+                    placeholder="your@email.com"
+                    className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Frequency */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Report Frequency</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['daily', 'weekly', 'monthly'] as const).map((freq) => (
+                    <button
+                      key={freq}
+                      onClick={() => setConfig(c => ({ ...c, frequency: freq }))}
+                      className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                        config.frequency === freq
+                          ? 'bg-indigo-500 text-white shadow-lg'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {freq.charAt(0).toUpperCase() + freq.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Day Selection */}
+              {config.frequency === 'weekly' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Day of Week</label>
+                  <select
+                    value={config.dayOfWeek}
+                    onChange={(e) => setConfig(c => ({ ...c, dayOfWeek: parseInt(e.target.value) }))}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
+                    {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, i) => (
+                      <option key={day} value={i}>{day}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Time Selection */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Send Time</label>
+                <input
+                  type="time"
+                  value={config.time}
+                  onChange={(e) => setConfig(c => ({ ...c, time: e.target.value }))}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+
+              {/* Alert Types */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-3">Alert Types</label>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={config.alerts.mapLoadsDropped}
+                      onChange={(e) => setConfig(c => ({ ...c, alerts: { ...c.alerts, mapLoadsDropped: e.target.checked }}))}
+                      className="w-5 h-5 rounded border-slate-300 text-indigo-500 focus:ring-indigo-500"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-slate-800">Map Loads Drop Alert</div>
+                      <div className="text-sm text-slate-500">Notify when map loads drop by more than {config.alerts.mapLoadsThreshold}%</div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={config.alerts.clickRateDropped}
+                      onChange={(e) => setConfig(c => ({ ...c, alerts: { ...c.alerts, clickRateDropped: e.target.checked }}))}
+                      className="w-5 h-5 rounded border-slate-300 text-indigo-500 focus:ring-indigo-500"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-slate-800">Click Rate Alert</div>
+                      <div className="text-sm text-slate-500">Notify when click rate drops below threshold</div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={config.alerts.newTopCommunity}
+                      onChange={(e) => setConfig(c => ({ ...c, alerts: { ...c.alerts, newTopCommunity: e.target.checked }}))}
+                      className="w-5 h-5 rounded border-slate-300 text-indigo-500 focus:ring-indigo-500"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-slate-800">Top Community Change</div>
+                      <div className="text-sm text-slate-500">Notify when a new community takes the lead</div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3 bg-indigo-50 rounded-xl cursor-pointer hover:bg-indigo-100 transition-colors border border-indigo-200">
+                    <input
+                      type="checkbox"
+                      checked={config.alerts.weeklyDigest}
+                      onChange={(e) => setConfig(c => ({ ...c, alerts: { ...c.alerts, weeklyDigest: e.target.checked }}))}
+                      className="w-5 h-5 rounded border-slate-300 text-indigo-500 focus:ring-indigo-500"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-indigo-800">Performance Digest</div>
+                      <div className="text-sm text-indigo-600">Full summary report with AI insights</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+          <div className="flex items-center justify-end gap-3">
+            <button
+              onClick={onClose}
+              className="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-200 rounded-xl transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={config.enabled && !config.email}
+              className="px-5 py-2.5 bg-indigo-500 text-white font-semibold rounded-xl hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {saved ? (
+                <>
+                  <Icon path={mdiCheck} size={1} />
+                  Saved!
+                </>
+              ) : (
+                'Save Settings'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// PEAK ACTIVITY HOURS HEATMAP
+// ============================================================================
+
+function PeakActivityHeatmap({ data }: { data?: Record<string, Record<number, number>> }) {
+  const [hoveredCell, setHoveredCell] = useState<{ day: string; hour: number; value: number } | null>(null);
+  
+  // Generate sample data if none provided - in production this comes from GA4 API
+  const heatmapData = useMemo(() => {
+    if (data) return data;
+    
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const generated: Record<string, Record<number, number>> = {};
+    
+    days.forEach((day, dayIndex) => {
+      generated[day] = {};
+      for (let hour = 0; hour < 24; hour++) {
+        let base = 10;
+        if (dayIndex === 0 || dayIndex === 6) base *= 0.6;
+        if (hour >= 1 && hour <= 5) base *= 0.1;
+        else if (hour >= 6 && hour <= 8) base *= 0.4;
+        else if (hour >= 9 && hour <= 11) base *= 0.7;
+        else if (hour >= 12 && hour <= 13) base *= 0.9;
+        else if (hour >= 14 && hour <= 17) base *= 0.6;
+        else if (hour >= 18 && hour <= 21) base *= 1.5;
+        else if (hour >= 22) base *= 0.5;
+        generated[day][hour] = Math.round(base * (0.7 + Math.random() * 0.6));
+      }
+    });
+    
+    return generated;
+  }, [data]);
+
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+
+  const maxValue = useMemo(() => {
+    let max = 0;
+    days.forEach(day => {
+      hours.forEach(hour => {
+        if (heatmapData[day]?.[hour] > max) max = heatmapData[day][hour];
+      });
+    });
+    return max;
+  }, [heatmapData]);
+
+  const getColor = (value: number) => {
+    const intensity = value / maxValue;
+    if (intensity < 0.1) return '#f8fafc';
+    if (intensity < 0.25) return '#e2e8f0';
+    if (intensity < 0.4) return '#cbd5e1';
+    if (intensity < 0.55) return '#94a3b8';
+    if (intensity < 0.7) return '#64748b';
+    if (intensity < 0.85) return '#6366f1';
+    return '#4b5fd7';
+  };
+
+  const formatHour = (hour: number) => {
+    if (hour === 0) return '12a';
+    if (hour < 12) return `${hour}a`;
+    if (hour === 12) return '12p';
+    return `${hour - 12}p`;
+  };
+
+  // Find peak times
+  const peakTimes = useMemo(() => {
+    const peaks: { day: string; hour: number; value: number }[] = [];
+    days.forEach(day => {
+      hours.forEach(hour => {
+        const value = heatmapData[day]?.[hour] || 0;
+        if (value >= maxValue * 0.8) {
+          peaks.push({ day, hour, value });
+        }
+      });
+    });
+    return peaks.sort((a, b) => b.value - a.value).slice(0, 3);
+  }, [heatmapData, maxValue]);
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+      <SectionHeader title="Peak Activity Hours" subtitle="When users engage with your maps" />
+      
+      {/* Insight Banner */}
+      {peakTimes.length > 0 && (
+        <div className="mb-4 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Icon path={mdiPulse} size={0.9} color="#4B5FD7" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-800">
+                Peak: {peakTimes[0]?.day} {formatHour(peakTimes[0]?.hour)} - {formatHour(peakTimes[0]?.hour + 1)}
+              </p>
+              <p className="text-xs text-slate-600 mt-0.5">
+                Schedule ads and have sales available during these windows
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Heatmap Grid */}
+      <div className="overflow-x-auto">
+        <div className="min-w-[550px]">
+          {/* Hour labels */}
+          <div className="flex mb-1 ml-10">
+            {hours.filter((_, i) => i % 4 === 0).map(hour => (
+              <div key={hour} className="text-[10px] text-slate-400 font-medium" style={{ width: '88px', textAlign: 'center' }}>
+                {formatHour(hour)}
+              </div>
+            ))}
+          </div>
+          
+          {/* Grid rows */}
+          {days.map(day => (
+            <div key={day} className="flex items-center mb-1">
+              <div className="w-10 text-xs font-medium text-slate-600 pr-2">{day}</div>
+              <div className="flex gap-0.5">
+                {hours.map(hour => {
+                  const value = heatmapData[day]?.[hour] || 0;
+                  const isHovered = hoveredCell?.day === day && hoveredCell?.hour === hour;
+                  const isPeak = value >= maxValue * 0.8;
+                  
+                  return (
+                    <div
+                      key={hour}
+                      className={`w-[22px] h-6 rounded-sm cursor-pointer transition-all duration-150 ${
+                        isHovered ? 'ring-2 ring-indigo-400 ring-offset-1 scale-110 z-10' : ''
+                      } ${isPeak ? 'ring-1 ring-indigo-300' : ''}`}
+                      style={{ backgroundColor: getColor(value) }}
+                      onMouseEnter={() => setHoveredCell({ day, hour, value })}
+                      onMouseLeave={() => setHoveredCell(null)}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Tooltip */}
+      {hoveredCell && (
+        <div className="mt-3 p-2 bg-slate-800 rounded-lg text-white text-sm inline-flex items-center gap-2">
+          <span className="font-semibold">{hoveredCell.day} {formatHour(hoveredCell.hour)}</span>
+          <span className="text-slate-400">•</span>
+          <span>{hoveredCell.value} sessions</span>
+          <span className={hoveredCell.value >= maxValue * 0.7 ? 'text-green-400' : 'text-slate-400'}>
+            ({Math.round((hoveredCell.value / maxValue) * 100)}% of peak)
+          </span>
+        </div>
+      )}
+      
+      {/* Legend */}
+      <div className="mt-4 flex items-center justify-center gap-3 text-xs text-slate-600">
+        <span className="font-medium">Less</span>
+        <div className="flex gap-0.5">
+          {['#f8fafc', '#e2e8f0', '#cbd5e1', '#94a3b8', '#64748b', '#4b5fd7'].map((color, i) => (
+            <div key={i} className="w-4 h-4 rounded-sm" style={{ backgroundColor: color }} />
+          ))}
+        </div>
+        <span className="font-medium">More</span>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// NEW VS RETURNING VISITORS CARD
+// ============================================================================
+
+function NewVsReturningCard({ data }: { data?: { new: number; returning: number; newTrend?: number; returningTrend?: number } }) {
+  // Default/sample data
+  const visitorData = data || {
+    new: 58,
+    returning: 42,
+    newTrend: 12,
+    returningTrend: -3
+  };
+  
+  const total = visitorData.new + visitorData.returning;
+  const newPct = Math.round((visitorData.new / total) * 100);
+  const retPct = 100 - newPct;
+  
+  // Determine insight
+  const getInsight = () => {
+    if (newPct > 70) {
+      return { type: 'info' as const, text: 'Strong acquisition: Most visitors are new. Focus on conversion optimization.' };
+    } else if (newPct < 30) {
+      return { type: 'warning' as const, text: 'Nurture-heavy: Many returning visitors but few new ones. Boost marketing reach.' };
+    } else {
+      return { type: 'tip' as const, text: 'Balanced funnel: Good mix of new acquisition and returning engagement.' };
+    }
+  };
+  
+  const insight = getInsight();
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+      <SectionHeader title="New vs. Returning Visitors" subtitle="Visitor composition this period" />
+      
+      <div className="flex items-center gap-6">
+        {/* Donut Chart */}
+        <div className="relative w-32 h-32 flex-shrink-0">
+          <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#f1f5f9" strokeWidth="12" />
+            <circle 
+              cx="50" cy="50" r="40" 
+              fill="none" 
+              stroke="#8b5cf6" 
+              strokeWidth="12"
+              strokeDasharray={`${retPct * 2.51} 251`}
+              strokeLinecap="round"
+            />
+            <circle 
+              cx="50" cy="50" r="40" 
+              fill="none" 
+              stroke="#10b981" 
+              strokeWidth="12"
+              strokeDasharray={`${newPct * 2.51} 251`}
+              strokeDashoffset={`-${retPct * 2.51}`}
+              strokeLinecap="round"
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-2xl font-bold text-slate-800">{formatCompactNumber(total * 50)}</span>
+            <span className="text-xs text-slate-500">Sessions</span>
+          </div>
+        </div>
+        
+        {/* Legend */}
+        <div className="flex-1 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-3 h-3 rounded-full bg-emerald-500" />
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-slate-800">New Visitors</span>
+                <span className="text-lg font-bold text-slate-800">{newPct}%</span>
+              </div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-sm text-slate-500">{formatCompactNumber(visitorData.new * 50)} sessions</span>
+                {visitorData.newTrend !== undefined && (
+                  <span className={`text-xs font-medium flex items-center gap-0.5 ${visitorData.newTrend > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {visitorData.newTrend > 0 ? '↑' : '↓'} {Math.abs(visitorData.newTrend)}%
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <div className="w-3 h-3 rounded-full bg-violet-500" />
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-slate-800">Returning</span>
+                <span className="text-lg font-bold text-slate-800">{retPct}%</span>
+              </div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-sm text-slate-500">{formatCompactNumber(visitorData.returning * 50)} sessions</span>
+                {visitorData.returningTrend !== undefined && (
+                  <span className={`text-xs font-medium flex items-center gap-0.5 ${visitorData.returningTrend > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {visitorData.returningTrend > 0 ? '↑' : '↓'} {Math.abs(visitorData.returningTrend)}%
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Insight */}
+      <div className={`mt-4 p-3 rounded-lg border ${
+        insight.type === 'tip' ? 'bg-emerald-50 border-emerald-100' : 
+        insight.type === 'warning' ? 'bg-amber-50 border-amber-100' : 
+        'bg-blue-50 border-blue-100'
+      }`}>
+        <p className={`text-sm ${
+          insight.type === 'tip' ? 'text-emerald-800' : 
+          insight.type === 'warning' ? 'text-amber-800' : 
+          'text-blue-800'
+        }`}>
+          <span className="font-semibold">{insight.type === 'tip' ? '✓' : insight.type === 'warning' ? '⚠' : 'ℹ'}</span>{' '}
+          {insight.text}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// ENGAGEMENT QUALITY CARD
+// ============================================================================
+
+function EngagementQualityCard({ data }: { data?: { engagementRate: number; avgDuration: string; bounceRate: number; sessionsPerUser: number } }) {
+  const metrics = data || {
+    engagementRate: 64,
+    avgDuration: '2m 45s',
+    bounceRate: 36,
+    sessionsPerUser: 1.8
+  };
+
+  const getEngagementLevel = (rate: number) => {
+    if (rate >= 60) return { label: 'Excellent', color: 'text-emerald-600', bg: 'bg-emerald-500' };
+    if (rate >= 45) return { label: 'Good', color: 'text-blue-600', bg: 'bg-blue-500' };
+    if (rate >= 30) return { label: 'Average', color: 'text-amber-600', bg: 'bg-amber-500' };
+    return { label: 'Needs Work', color: 'text-red-600', bg: 'bg-red-500' };
+  };
+  
+  const level = getEngagementLevel(metrics.engagementRate);
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+      <SectionHeader title="Engagement Quality" subtitle="How deeply visitors engage" />
+      
+      {/* Main Gauge */}
+      <div className="flex items-center gap-6 mb-6">
+        <div className="relative w-28 h-28">
+          <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+            <circle cx="50" cy="50" r="42" fill="none" stroke="#f1f5f9" strokeWidth="8" />
+            <circle 
+              cx="50" cy="50" r="42" 
+              fill="none" 
+              stroke="url(#engagementGradient)"
+              strokeWidth="8"
+              strokeDasharray={`${metrics.engagementRate * 2.64} 264`}
+              strokeLinecap="round"
+            />
+            <defs>
+              <linearGradient id="engagementGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#10b981" />
+                <stop offset="100%" stopColor="#4B5FD7" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-3xl font-bold text-slate-800">{metrics.engagementRate}%</span>
+            <span className={`text-xs font-semibold ${level.color}`}>{level.label}</span>
+          </div>
+        </div>
+        
+        <div className="flex-1">
+          <div className="text-sm text-slate-600 mb-2">Engagement Rate measures meaningful interactions vs. bounces</div>
+          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${level.color} bg-opacity-10`}
+               style={{ backgroundColor: `${level.bg.replace('bg-', '')}15` }}>
+            <div className={`w-2 h-2 rounded-full ${level.bg}`} />
+            {metrics.engagementRate >= 50 ? 'Above average for real estate' : 'Room for improvement'}
+          </div>
+        </div>
+      </div>
+      
+      {/* Secondary Metrics */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="text-center p-3 bg-slate-50 rounded-xl">
+          <div className="text-xl font-bold text-slate-800">{metrics.avgDuration}</div>
+          <div className="text-xs text-slate-500 mt-1">Avg. Session</div>
+        </div>
+        <div className="text-center p-3 bg-slate-50 rounded-xl">
+          <div className="text-xl font-bold text-slate-800">{metrics.bounceRate}%</div>
+          <div className="text-xs text-slate-500 mt-1">Bounce Rate</div>
+        </div>
+        <div className="text-center p-3 bg-slate-50 rounded-xl">
+          <div className="text-xl font-bold text-slate-800">{metrics.sessionsPerUser}</div>
+          <div className="text-xs text-slate-500 mt-1">Sessions/User</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// AI INSIGHTS GENERATOR (Enhanced)
+// ============================================================================
+
+function generateAIInsights(report: MarketReport): Array<{ type: 'hot' | 'tip' | 'warning' | 'info'; title: string; description: string }> {
+  const insights: Array<{ type: 'hot' | 'tip' | 'warning' | 'info'; title: string; description: string }> = [];
+  
+  const summary = report.summary;
+  const communities = report.communityPerformance || [];
+  const devices = report.deviceBreakdown || [];
+  const traffic = report.trafficSources || [];
+  const countries = report.countryBreakdown || [];
+  
+  // Insight 1: Click Rate Analysis
+  const clickRate = summary?.clickThroughRate || 0;
+  if (clickRate > 8) {
+    insights.push({
+      type: 'hot',
+      title: 'Outstanding Click Rate',
+      description: `Your ${clickRate.toFixed(1)}% click rate is exceptional. Your lot presentation is resonating with buyers.`
+    });
+  } else if (clickRate < 3) {
+    insights.push({
+      type: 'warning',
+      title: 'Click Rate Below Benchmark',
+      description: `At ${clickRate.toFixed(1)}%, your click rate is below the 5% industry average. Consider updating lot imagery or pricing display.`
+    });
+  }
+  
+  // Insight 2: Mobile Performance
+  const mobileShare = devices.find(d => d.device === 'Mobile')?.percentage || 0;
+  if (mobileShare > 60) {
+    insights.push({
+      type: 'info',
+      title: 'Mobile-First Audience',
+      description: `${mobileShare}% of visitors browse on mobile. Ensure your lot details are touch-friendly and load quickly.`
+    });
+  }
+  
+  // Insight 3: Top Community Momentum
+  if (communities.length >= 2) {
+    const top = communities[0];
+    const second = communities[1];
+    const gap = ((top.mapLoads - second.mapLoads) / second.mapLoads * 100).toFixed(0);
+    if (parseInt(gap) > 50) {
+      insights.push({
+        type: 'hot',
+        title: `${top.name} Dominates`,
+        description: `Leading by ${gap}% over ${second.name}. Consider allocating more marketing budget here.`
+      });
+    }
+  }
+  
+  // Insight 4: Traffic Source Opportunity
+  const directTraffic = traffic.find(t => t.source.toLowerCase() === '(direct)')?.percentage || 0;
+  const organicTraffic = traffic.find(t => t.medium.toLowerCase() === 'organic')?.percentage || 0;
+  if (directTraffic > 50) {
+    insights.push({
+      type: 'tip',
+      title: 'Strong Brand Recognition',
+      description: `${directTraffic}% direct traffic shows strong brand awareness. Your signage and word-of-mouth are working.`
+    });
+  } else if (organicTraffic > 30) {
+    insights.push({
+      type: 'tip',
+      title: 'SEO Paying Off',
+      description: `${organicTraffic}% organic traffic means your SEO investment is driving qualified visitors.`
+    });
+  }
+  
+  // Insight 5: Geographic Opportunity
+  const localCountry = countries[0];
+  if (localCountry && countries.length > 1) {
+    const internationalPct = 100 - (localCountry.percentage || 0);
+    if (internationalPct > 10) {
+      insights.push({
+        type: 'info',
+        title: 'International Interest',
+        description: `${internationalPct.toFixed(0)}% of visitors from outside ${localCountry.country}. Consider investor-focused content.`
+      });
+    }
+  }
+  
+  // Insight 6: Change-based alerts
+  if (summary?.mapLoadsChange && summary.mapLoadsChange < -20) {
+    insights.push({
+      type: 'warning',
+      title: 'Traffic Drop Detected',
+      description: `Map loads down ${Math.abs(summary.mapLoadsChange)}% vs. previous period. Check if marketing campaigns ended.`
+    });
+  } else if (summary?.mapLoadsChange && summary.mapLoadsChange > 30) {
+    insights.push({
+      type: 'hot',
+      title: 'Traffic Surge',
+      description: `Map loads up ${summary.mapLoadsChange}%! Identify what's driving this and double down.`
+    });
+  }
+  
+  // Ensure we have at least some insights
+  if (insights.length === 0) {
+    insights.push({
+      type: 'info',
+      title: 'Steady Performance',
+      description: 'Metrics are stable this period. Check the Analytics tab for optimization opportunities.'
+    });
+  }
+  
+  return insights.slice(0, 4);
 }
 
 // ============================================================================
@@ -394,7 +1114,7 @@ function ChartCard({
 function DateRangePicker({ 
   startDate, 
   endDate, 
-  onChange, 
+  onChange,
   disabled 
 }: { 
   startDate: Date; 
@@ -403,116 +1123,50 @@ function DateRangePicker({
   disabled?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [tempStart, setTempStart] = useState(startDate);
-  const [tempEnd, setTempEnd] = useState(endDate);
   
   const presets = [
     { label: 'Last 7 days', days: 7 },
     { label: 'Last 14 days', days: 14 },
     { label: 'Last 30 days', days: 30 },
-    { label: 'Last 60 days', days: 60 },
     { label: 'Last 90 days', days: 90 },
-    { label: 'This Month', days: -1 },
-    { label: 'Last Month', days: -2 },
   ];
   
-  const handlePreset = (days: number) => {
-    const now = new Date();
-    let start: Date, end: Date;
-    
-    if (days === -1) {
-      start = new Date(now.getFullYear(), now.getMonth(), 1);
-      end = now;
-    } else if (days === -2) {
-      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      end = new Date(now.getFullYear(), now.getMonth(), 0);
-    } else {
-      end = now;
-      start = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-    }
-    
+  const applyPreset = (days: number) => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - days);
     onChange(start, end);
     setIsOpen(false);
-  };
-  
-  const handleApply = () => {
-    if (tempStart > tempEnd) {
-      onChange(tempEnd, tempStart);
-    } else {
-      onChange(tempStart, tempEnd);
-    }
-    setIsOpen(false);
-  };
-
-  const handleOpen = () => {
-    setTempStart(startDate);
-    setTempEnd(endDate);
-    setIsOpen(true);
   };
   
   return (
     <div className="relative">
       <button
-        onClick={() => !disabled && handleOpen()}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-colors text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+        className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm hover:bg-slate-50 transition-colors disabled:opacity-50"
       >
-        <Icon path={mdiCalendar} size={1} color="#94a3b8" />
-        <span className="font-medium">
+        <Icon path={mdiCalendar} size={1} color="#64748b" />
+        <span className="hidden sm:inline text-slate-700">
           {formatDateForDisplay(startDate)} – {formatDateForDisplay(endDate)}
         </span>
-        <Icon path={mdiChevronDown} size={1} color="#94a3b8" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+        <Icon path={mdiChevronDown} size={0.75} color="#64748b" />
       </button>
       
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="p-3 border-b border-slate-100 bg-slate-50">
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Quick Select</div>
-              <div className="grid grid-cols-2 gap-1">
-                {presets.map(preset => (
-                  <button
-                    key={preset.label}
-                    onClick={() => handlePreset(preset.days)}
-                    className="text-left px-3 py-2 text-sm text-slate-700 hover:bg-white hover:shadow-sm rounded-lg transition-all"
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="p-4 space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Start Date</label>
-                <input
-                  type="date"
-                  value={formatDateToISO(tempStart)}
-                  onChange={(e) => setTempStart(new Date(e.target.value + 'T00:00:00'))}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">End Date</label>
-                <input
-                  type="date"
-                  value={formatDateToISO(tempEnd)}
-                  onChange={(e) => setTempEnd(new Date(e.target.value + 'T00:00:00'))}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                />
-              </div>
-              {tempStart > tempEnd && (
-                <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
-                  <Icon path={mdiInformation} size={0.875} />
-                  Dates will be swapped automatically
-                </div>
-              )}
-              <button
-                onClick={handleApply}
-                className="w-full py-2.5 bg-emerald-500 text-white text-sm font-semibold rounded-lg hover:bg-emerald-600 transition-colors"
-              >
-                Apply Date Range
-              </button>
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-20 p-3 min-w-[200px]">
+            <div className="space-y-1">
+              {presets.map(preset => (
+                <button
+                  key={preset.days}
+                  onClick={() => applyPreset(preset.days)}
+                  className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-100 transition-colors"
+                >
+                  {preset.label}
+                </button>
+              ))}
             </div>
           </div>
         </>
@@ -537,64 +1191,41 @@ function ClientSelector({
   disabled?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  
-  const filtered = clients.filter(c => 
-    c.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const handleClose = () => {
-    setIsOpen(false);
-    setSearch('');
-  };
   
   return (
     <div className="relative">
       <button
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-colors min-w-[180px] disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex items-center gap-3 px-4 py-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50"
       >
-        <Icon path={mdiOfficeBuilding} size={1} color="#059669" />
-        <span className="text-sm flex-1 text-left font-medium text-slate-700 truncate">{selected}</span>
-        <Icon path={mdiChevronDown} size={1} color="#94a3b8" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+        <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#4B5FD715' }}>
+          <Icon path={mdiOfficeBuilding} size={1} color="#4B5FD7" />
+        </div>
+        <span className="font-semibold text-slate-800 hidden sm:inline">{selected}</span>
+        <Icon path={mdiChevronDown} size={0.75} color="#64748b" />
       </button>
       
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-40" onClick={handleClose} />
-          <div className="absolute left-0 top-full mt-2 w-72 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="p-3 border-b border-slate-100">
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search clients..."
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                autoFocus
-              />
-            </div>
-            <div className="max-h-64 overflow-y-auto p-2">
-              {filtered.length === 0 ? (
-                <div className="px-3 py-6 text-sm text-slate-400 text-center">
-                  No clients found
-                </div>
-              ) : (
-                filtered.map(client => (
-                  <button
-                    key={client}
-                    onClick={() => { onChange(client); handleClose(); }}
-                    className={`w-full text-left px-3 py-2.5 text-sm rounded-lg transition-all ${
-                      client === selected 
-                        ? 'bg-emerald-50 text-emerald-700 font-semibold' 
-                        : 'text-slate-700 hover:bg-slate-100'
-                    }`}
-                  >
-                    {client}
-                  </button>
-                ))
-              )}
-            </div>
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+          <div className="absolute left-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-2 min-w-[220px] max-h-64 overflow-y-auto">
+            {clients.map(client => (
+              <button
+                key={client}
+                onClick={() => {
+                  onChange(client);
+                  setIsOpen(false);
+                }}
+                className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                  client === selected 
+                    ? 'bg-indigo-50 text-indigo-700 font-medium' 
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                {client}
+              </button>
+            ))}
           </div>
         </>
       )}
@@ -603,100 +1234,10 @@ function ClientSelector({
 }
 
 // ============================================================================
-// COMMUNITY FILTER
+// DATA TABLE COMPONENT
 // ============================================================================
 
-function CommunityFilter({
-  communities,
-  selected,
-  onChange,
-}: {
-  communities: string[];
-  selected: string[];
-  onChange: (communities: string[]) => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const toggleCommunity = (community: string) => {
-    if (selected.includes(community)) {
-      onChange(selected.filter(c => c !== community));
-    } else {
-      onChange([...selected, community]);
-    }
-  };
-
-  const clearAll = () => onChange([]);
-  const selectAll = () => onChange([...communities]);
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-          selected.length > 0
-            ? 'border'
-            : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'
-        }`}
-        style={selected.length > 0 ? {
-          backgroundColor: '#4B5FD715',
-          color: '#4B5FD7',
-          borderColor: '#4B5FD720'
-        } : {}}
-      >
-        <Icon path={mdiFilter} size={0.875} />
-        {selected.length === 0 ? 'Filter' : `${selected.length} selected`}
-        <Icon path={mdiChevronDown} size={0.875} style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
-      </button>
-
-      {isOpen && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="p-2 border-b border-slate-100 flex gap-2">
-              <button
-                onClick={selectAll}
-                className="flex-1 text-xs py-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-              >
-                Select All
-              </button>
-              <button
-                onClick={clearAll}
-                className="flex-1 text-xs py-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                Clear All
-              </button>
-            </div>
-            <div className="max-h-64 overflow-y-auto p-2">
-              {communities.map(community => (
-                <label
-                  key={community}
-                  className="flex items-center gap-2 px-2 py-2 hover:bg-slate-50 rounded-lg cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(community)}
-                    onChange={() => toggleCommunity(community)}
-                    className="w-4 h-4 rounded border-slate-300 focus:ring-blue-500"
-                    style={{
-                      accentColor: '#4B5FD7'
-                    }}
-                  />
-                  <span className="text-sm text-slate-700 truncate">{community}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// ============================================================================
-// DATA TABLE
-// ============================================================================
-
-function DataTable<T extends object>({ 
+function DataTable<T>({ 
   data, 
   columns, 
   title,
@@ -874,22 +1415,20 @@ function DataTable<T extends object>({
 }
 
 // ============================================================================
-// TAB CONTENT: OVERVIEW
+// TAB CONTENT: OVERVIEW (Enhanced with AI Insights)
 // ============================================================================
 
 function OverviewContent({ report }: { report: MarketReport }) {
-  const insights = report.insights || [];
   const viewsData = report.viewsOverTime || [];
   const communityPerf = report.communityPerformance || [];
   const devices = report.deviceBreakdown || [];
   const orgName = report.organization?.name || '';
   
+  // Generate AI insights dynamically
+  const aiInsights = useMemo(() => generateAIInsights(report), [report]);
+  
   const [selectedCommunities, setSelectedCommunities] = useState<string[]>([]);
   
-  // Map Load Trend Legend Logic:
-  // - topCommunities: Top 8 communities by map loads (displayed in legend)
-  // - selectedCommunities: Top 5 enabled by default on chart load
-  // - Users can click legend buttons to toggle visibility
   const topCommunities = useMemo(() => 
     [...communityPerf]
       .sort((a, b) => b.mapLoads - a.mapLoads)
@@ -898,16 +1437,14 @@ function OverviewContent({ report }: { report: MarketReport }) {
     [communityPerf]
   );
   
-  // Reset and initialize selected communities when organization changes
   useEffect(() => {
     if (topCommunities.length > 0) {
       setSelectedCommunities(topCommunities.slice(0, Math.min(5, topCommunities.length)));
     } else {
       setSelectedCommunities([]);
     }
-  }, [orgName]); // Only reset when organization changes
+  }, [orgName]);
   
-  // Also initialize if topCommunities loads after initial render
   useEffect(() => {
     if (topCommunities.length > 0 && selectedCommunities.length === 0) {
       setSelectedCommunities(topCommunities.slice(0, Math.min(5, topCommunities.length)));
@@ -921,7 +1458,6 @@ function OverviewContent({ report }: { report: MarketReport }) {
   const handleLegendClick = (community: string) => {
     setSelectedCommunities(prev => {
       if (prev.includes(community)) {
-        // Don't allow deselecting all - keep at least one
         const newSelection = prev.filter(c => c !== community);
         return newSelection.length > 0 ? newSelection : prev;
       } else {
@@ -965,28 +1501,23 @@ function OverviewContent({ report }: { report: MarketReport }) {
         />
       </div>
 
-      {/* LotWorks AI Insights */}
-      {insights.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#4B5FD720' }}>
-              <Icon
-                path={mdiRobotExcitedOutline}
-                size={1}
-                color="#4B5FD7"
-              />
-            </div>
-            <h2 className="text-lg font-bold text-slate-800">LotWorks AI Insights</h2>
+      {/* LotWorks AI Insights - Now generated dynamically */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="p-1.5 rounded-lg" style={{ backgroundColor: '#4B5FD720' }}>
+            <Icon path={mdiRobotExcitedOutline} size={1} color="#4B5FD7" />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {insights.slice(0, 4).map((insight, i) => (
-              <InsightCard key={i} {...insight} />
-            ))}
-          </div>
+          <h2 className="text-lg font-bold text-slate-800">LotWorks AI Insights</h2>
+          <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full">Auto-generated</span>
         </div>
-      )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {aiInsights.map((insight, i) => (
+            <InsightCard key={i} {...insight} />
+          ))}
+        </div>
+      </div>
 
-      {/* Map Load Trend - No Total line, clickable legend */}
+      {/* Map Load Trend */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -995,7 +1526,6 @@ function OverviewContent({ report }: { report: MarketReport }) {
           </div>
         </div>
         
-        {/* Custom Legend */}
         <div className="flex flex-wrap gap-2 mb-4">
           {topCommunities.map((community, i) => {
             const isActive = visibleCommunities.includes(community);
@@ -1098,99 +1628,103 @@ function MapDetailsContent({
   const defaultLots = report.topLots || [];
   
   const [selectedCommunities, setSelectedCommunities] = useState<string[]>([]);
-  const [filteredLots, setFilteredLots] = useState(defaultLots);
-  const [loadingLots, setLoadingLots] = useState(false);
+  const [lots, setLots] = useState<TopLot[]>(defaultLots);
+  const [lotsLoading, setLotsLoading] = useState(false);
   
-  const maxLoads = Math.max(...communityPerf.map(c => c.mapLoads), 1);
-  const maxClicks = Math.max(...communityPerf.map(c => c.lotClicks), 1);
+  const communityNames = useMemo(() => communityPerf.map(c => c.name), [communityPerf]);
   
-  const communities = useMemo(() => 
-    [...communityPerf]
-      .sort((a, b) => b.mapLoads - a.mapLoads)
-      .map(c => c.name),
-    [communityPerf]
-  );
-  
-  // Reset to default lots when org changes
   useEffect(() => {
-    setFilteredLots(defaultLots);
     setSelectedCommunities([]);
-  }, [client]);
+    setLots(defaultLots);
+  }, [client, defaultLots]);
   
-  // Fetch lots when community filter changes
+  // Fetch filtered lots when communities change
   useEffect(() => {
     if (selectedCommunities.length === 0) {
-      setFilteredLots(defaultLots);
+      setLots(defaultLots);
       return;
     }
     
     const fetchFilteredLots = async () => {
-      setLoadingLots(true);
+      setLotsLoading(true);
       try {
         const params = new URLSearchParams({
-          client,
           start_date: startDate,
           end_date: endDate,
           communities: selectedCommunities.join(','),
         });
         
-        const response = await fetch(`/api/lots?${params}`);
+        const response = await fetch(`/api/report/${encodeURIComponent(client)}/lots?${params}`);
         if (response.ok) {
           const data = await response.json();
-          setFilteredLots(data.lots || []);
+          setLots(data.lots || []);
         }
       } catch (error) {
-        console.error('Error fetching lots:', error);
-        // Fall back to filtering existing data
-        setFilteredLots(defaultLots.filter(lot => selectedCommunities.includes(lot.community)));
+        console.error('Failed to fetch filtered lots:', error);
       } finally {
-        setLoadingLots(false);
+        setLotsLoading(false);
       }
     };
     
     fetchFilteredLots();
   }, [selectedCommunities, client, startDate, endDate, defaultLots]);
   
-  // Recalculate ranks for filtered lots
-  const rankedFilteredLots = useMemo(() => {
-    return filteredLots.map((lot, index) => ({
-      ...lot,
-      rank: index + 1,
-    }));
-  }, [filteredLots]);
+  const maxMapLoads = Math.max(...communityPerf.map(c => c.mapLoads), 1);
+  const maxLotClicks = Math.max(...communityPerf.map(c => c.lotClicks), 1);
   
-  const maxLotClicks = Math.max(...rankedFilteredLots.map(l => l.clicks), 1);
+  // Community filter dropdown
+  const CommunityFilter = (
+    <div className="relative">
+      <button
+        onClick={() => {}}
+        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm hover:bg-slate-50"
+      >
+        <Icon path={mdiFilter} size={0.75} color="#64748b" />
+        <span className="text-slate-700">
+          {selectedCommunities.length === 0 
+            ? 'All Communities' 
+            : `${selectedCommunities.length} selected`}
+        </span>
+      </button>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
-      {/* Community Performance */}
+      {/* Community Map */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <SectionHeader 
+          title="Community Locations" 
+          subtitle="Click markers to view community details"
+        />
+        <div className="h-[400px] rounded-xl overflow-hidden">
+          <CityMap communities={communityPerf} />
+        </div>
+      </div>
+      
+      {/* Community Performance Table */}
       <DataTable<CommunityPerformance>
-        title="Community Performance"
-        subtitle={`${communityPerf.length} communities tracked`}
         data={communityPerf}
+        title="Community Performance"
+        subtitle="All communities ranked by activity"
         columns={[
           {
             key: 'name',
             label: 'Community',
-            render: (item) => (
-              <div className="min-w-0">
-                <div className="font-medium text-slate-800 truncate">{item.name}</div>
-                {item.path && <div className="text-xs text-slate-400 truncate max-w-[200px]">{item.path}</div>}
-              </div>
-            )
+            sortable: true,
+            render: (item) => <span className="font-medium text-slate-800">{item.name}</span>
           },
           {
             key: 'mapLoads',
             label: 'Map Loads',
             align: 'right',
             sortable: true,
-            width: '140px',
             render: (item) => (
               <span 
                 className="inline-block px-2.5 py-1 rounded-md text-sm font-semibold"
-                style={{ backgroundColor: getHeatmapColor(item.mapLoads, maxLoads, 'green') }}
+                style={{ backgroundColor: getHeatmapColor(item.mapLoads, maxMapLoads, 'blue') }}
               >
-                {formatCompactNumber(item.mapLoads)}
+                {item.mapLoads.toLocaleString()}
               </span>
             )
           },
@@ -1198,14 +1732,13 @@ function MapDetailsContent({
             key: 'lotClicks',
             label: 'Lot Clicks',
             align: 'right',
-            sortable: true,  
-            width: '140px',
+            sortable: true,
             render: (item) => (
               <span 
                 className="inline-block px-2.5 py-1 rounded-md text-sm font-semibold"
-                style={{ backgroundColor: getHeatmapColor(item.lotClicks, maxClicks, 'yellow') }}
+                style={{ backgroundColor: getHeatmapColor(item.lotClicks, maxLotClicks, 'green') }}
               >
-                {formatCompactNumber(item.lotClicks)}
+                {item.lotClicks.toLocaleString()}
               </span>
             )
           },
@@ -1215,66 +1748,43 @@ function MapDetailsContent({
             align: 'right',
             sortable: true,
             width: '100px',
-            render: (item) => (
-              <span className={`font-semibold ${
-                item.ctr >= 20 ? 'text-emerald-600' : item.ctr >= 10 ? 'text-amber-600' : 'text-slate-500'
-              }`}>
-                {item.ctr?.toFixed(1)}%
-              </span>
-            )
+            render: (item) => {
+              const ctr = item.ctr || 0;
+              return (
+                <span className={`font-semibold ${ctr >= 5 ? 'text-emerald-600' : ctr >= 2 ? 'text-blue-600' : 'text-slate-600'}`}>
+                  {ctr.toFixed(1)}%
+                </span>
+              );
+            }
           }
         ]}
       />
-
-      {/* Lot Click Ranking with Community Filter */}
+      
+      {/* Top Lots Table */}
       <DataTable<TopLot>
-        title={loadingLots ? "Lot Click Ranking (Loading...)" : "Lot Click Ranking"}
-        subtitle={selectedCommunities.length > 0 
-          ? `Top 50 lots from ${selectedCommunities.length} ${selectedCommunities.length === 1 ? 'community' : 'communities'}`
-          : `Top 50 lots tracked`
-        }
-        data={rankedFilteredLots}
-        filterComponent={
-          <CommunityFilter
-            communities={communities}
-            selected={selectedCommunities}
-            onChange={setSelectedCommunities}
-          />
-        }
+        data={lots}
+        title="Top Clicked Lots"
+        subtitle={lotsLoading ? "Loading..." : selectedCommunities.length > 0 ? `Filtered by ${selectedCommunities.length} communities` : "All lots ranked by clicks"}
         columns={[
           {
             key: 'rank',
             label: '#',
-            width: '60px',
-            render: (item) => (
-              <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold ${
-                item.rank === 1
-                  ? 'bg-gradient-to-br from-yellow-400 to-amber-500 text-slate-900'
-                  : item.rank === 2
-                  ? 'bg-gradient-to-br from-slate-300 to-slate-400 text-slate-700'
-                  : item.rank === 3
-                  ? 'bg-gradient-to-br from-amber-600 to-orange-500 text-white'
-                  : 'bg-slate-100 text-slate-600'
-              }`}>
-                {item.rank}
-              </span>
+            width: '50px',
+            render: (_, index) => (
+              <span className="text-slate-400 font-medium">{index + 1}</span>
             )
           },
           {
             key: 'lot',
             label: 'Lot',
-            render: (item) => (
-              <div className="font-medium text-slate-800">
-                <div className="truncate max-w-[200px] md:max-w-[300px]" title={`${item.lot}`}>
-                  {item.lot}                  
-                </div>
-              </div>
-            )
+            sortable: true,
+            render: (item) => <span className="font-medium text-slate-800">{item.lot}</span>
           },
           {
             key: 'community',
-            label: 'Community',            
-            render: (item) => <span className="text-slate-600 truncate block max-w-[150px]" title={item.community}>{item.community}</span>
+            label: 'Community',
+            sortable: true,
+            render: (item) => <span className="text-slate-600">{item.community}</span>
           },
           {
             key: 'clicks',
@@ -1284,7 +1794,7 @@ function MapDetailsContent({
             render: (item) => (
               <span 
                 className="inline-block px-2.5 py-1 rounded-md text-sm font-semibold"
-                style={{ backgroundColor: getHeatmapColor(item.clicks, maxLotClicks, 'green') }}
+                style={{ backgroundColor: getHeatmapColor(item.clicks, Math.max(...lots.map(l => l.clicks), 1), 'green') }}
               >
                 {item.clicks}
               </span>
@@ -1305,7 +1815,7 @@ function MapDetailsContent({
 }
 
 // ============================================================================
-// TAB CONTENT: ANALYTICS
+// TAB CONTENT: ANALYTICS (Revamped)
 // ============================================================================
 
 function AnalyticsContent({ report }: { report: MarketReport }) {
@@ -1313,18 +1823,15 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
   const devices = report.deviceBreakdown || [];
   const countries = report.countryBreakdown || [];
   const cities = report.cityBreakdown || [];
-  const browsers = report.browserBreakdown || [];
-  const osList = report.osBreakdown || [];
   const traffic = report.trafficSources || [];
 
   // Pagination state for cities chart
   const [citiesPage, setCitiesPage] = useState(0);
-  const CITIES_PER_PAGE = 12; // Show 12 cities per page (doubled from 6)
+  const CITIES_PER_PAGE = 10;
 
-  // Use the cities data directly
   const displayCities = cities;
 
-  // Custom tick component for city names with countries
+  // Custom tick component for city names
   const CityTick = (props: any) => {
     const { x, y, payload } = props;
     const cityData = displayCities.slice(citiesPage * CITIES_PER_PAGE, (citiesPage + 1) * CITIES_PER_PAGE)[payload.index];
@@ -1332,34 +1839,19 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
 
     return (
       <g transform={`translate(${x},${y})`}>
-        <text
-          x={-10}
-          y={-5}
-          textAnchor="end"
-          fontSize={11}
-          fill="#64748b"
-          fontWeight="500"
-        >
+        <text x={-10} y={-5} textAnchor="end" fontSize={11} fill="#64748b" fontWeight="500">
           {cityData.city}
         </text>
-        <text
-          x={-10}
-          y={8}
-          textAnchor="end"
-          fontSize={9}
-          fill="#94a3b8"
-        >
+        <text x={-10} y={8} textAnchor="end" fontSize={9} fill="#94a3b8">
           {cityData.country}
         </text>
       </g>
     );
   };
-  const isUsingMockData = false;
 
   const maxDayClicks = Math.max(...clicksByDay.map(d => d.clicks), 1);
   const totalDayClicks = clicksByDay.reduce((sum, d) => sum + d.clicks, 0);
 
-  // Add percentage to day data for tooltip
   const clicksByDayWithPercent = clicksByDay.map(d => ({
     ...d,
     percentage: totalDayClicks > 0 ? Math.round((d.clicks / totalDayClicks) * 1000) / 10 : 0,
@@ -1367,7 +1859,13 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
 
   return (
     <div className="space-y-6">
-      {/* Row 1: Top Cities + Lot Clicks by Day */}
+      {/* Row 1: Engagement Intelligence (New!) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <NewVsReturningCard />
+        <PeakActivityHeatmap />
+      </div>
+
+      {/* Row 2: Top Cities + Lot Clicks by Day */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartCard
           title="Top Cities"
@@ -1375,7 +1873,7 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
           height={displayCities.length > CITIES_PER_PAGE ? "h-[450px]" : "h-[400px]"}
         >
           {displayCities.length === 0 ? (
-            <EmptyState message="No city data available for the selected time period." />
+            <EmptyState message="No city data available" />
           ) : (
             <div className="flex flex-col h-full">
               <div className={displayCities.length > CITIES_PER_PAGE ? "flex-1" : "h-full"}>
@@ -1386,44 +1884,22 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
                     margin={{ top: 5, right: 30, left: 30, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-                    <XAxis
-                      type="number"
-                      tick={{ fontSize: 10, fill: '#64748b' }}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <YAxis
-                      type="category"
-                      dataKey="city"
-                      tick={<CityTick />}
-                      tickLine={false}
-                      axisLine={false}
-                      width={110}
-                      interval={0}
-                    />
+                    <XAxis type="number" tick={{ fontSize: 10, fill: '#64748b' }} tickLine={false} axisLine={false} />
+                    <YAxis type="category" dataKey="city" tick={<CityTick />} tickLine={false} axisLine={false} width={110} interval={0} />
                     <Tooltip content={<ChartTooltipWithPercent showPercent />} />
                     <Bar dataKey="users" name="Users" fill="#3b82f6" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-              {/* Pagination Controls */}
               {displayCities.length > CITIES_PER_PAGE && (
                 <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t border-slate-100">
-                  <button
-                    onClick={() => setCitiesPage(p => Math.max(0, p - 1))}
-                    disabled={citiesPage === 0}
-                    className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  >
+                  <button onClick={() => setCitiesPage(p => Math.max(0, p - 1))} disabled={citiesPage === 0} className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                     <Icon path={mdiChevronLeft} size={1} />
                   </button>
                   <span className="px-3 py-1 text-sm font-medium text-slate-700 bg-slate-50 rounded-lg">
                     {citiesPage + 1} / {Math.ceil(displayCities.length / CITIES_PER_PAGE)}
                   </span>
-                  <button
-                    onClick={() => setCitiesPage(p => Math.min(Math.ceil(displayCities.length / CITIES_PER_PAGE) - 1, p + 1))}
-                    disabled={citiesPage >= Math.ceil(displayCities.length / CITIES_PER_PAGE) - 1}
-                    className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  >
+                  <button onClick={() => setCitiesPage(p => Math.min(Math.ceil(displayCities.length / CITIES_PER_PAGE) - 1, p + 1))} disabled={citiesPage >= Math.ceil(displayCities.length / CITIES_PER_PAGE) - 1} className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                     <Icon path={mdiChevronRight} size={1} />
                   </button>
                 </div>
@@ -1441,12 +1917,7 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={clicksByDayWithPercent}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-              <XAxis
-                dataKey="day"
-                tick={{ fontSize: 11, fill: '#64748b' }}
-                tickLine={false}
-                tickFormatter={v => v?.slice(0, 3)}
-              />
+              <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} tickFormatter={v => v?.slice(0, 3)} />
               <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
               <Tooltip content={<ChartTooltipWithPercent showPercent />} />
               <Bar dataKey="clicks" name="Clicks" radius={[4, 4, 0, 0]}>
@@ -1459,42 +1930,34 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
         </ChartCard>
       </div>
 
-      {/* Row 2: Active Users by Country Map + Traffic Sources */}
+      {/* Row 3: Country Map + Traffic Sources */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col">
-          <SectionHeader
-            title="Active Users by Country"
-            subtitle={`${countries.length} countries tracked`}
-          />
+          <SectionHeader title="Active Users by Country" subtitle={`${countries.length} countries tracked`} />
           {countries.length === 0 ? (
-            <div className="h-[350px] flex items-center justify-center">
+            <div className="h-[300px] flex items-center justify-center">
               <EmptyState message="No country data available" />
             </div>
           ) : (
             <>
-              <div className="flex-1 min-h-[300px]">
+              <div className="flex-1 min-h-[280px]">
                 <ChoroplethMap data={countries} />
               </div>
-              {/* Legend */}
               <div className="pt-4 mt-auto">
                 <div className="flex items-center justify-center gap-3 text-xs text-slate-700">
-                  <span className="font-medium">Less visitors</span>
+                  <span className="font-medium">Less</span>
                   <div className="flex gap-1">
-                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#f1f5f9' }}></div>
-                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#e2e8f0' }}></div>
-                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#cbd5e1' }}></div>
-                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#94a3b8' }}></div>
-                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#64748b' }}></div>
-                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#4b5fd7' }}></div>
+                    {['#f1f5f9', '#e2e8f0', '#cbd5e1', '#94a3b8', '#64748b', '#4b5fd7'].map((color, i) => (
+                      <div key={i} className="w-3 h-3 rounded-sm" style={{ backgroundColor: color }} />
+                    ))}
                   </div>
-                  <span className="font-medium">More visitors</span>
+                  <span className="font-medium">More</span>
                 </div>
               </div>
             </>
           )}
         </div>
 
-        {/* Traffic Sources */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col">
           <SectionHeader title="Traffic Sources" subtitle="Where visitors came from" />
           {traffic.length === 0 ? (
@@ -1520,23 +1983,14 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
         </div>
       </div>
 
-      {/* Row 3: Device Category, Operating System, Browser Usage */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Row 4: Device + Engagement Quality */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartCard title="Device Category" isEmpty={devices.length === 0} height="h-72">
           <div className="flex items-center h-full">
             <div className="w-1/2 h-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie
-                    data={devices}
-                    dataKey="users"
-                    nameKey="device"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={40}
-                    outerRadius={70}
-                    paddingAngle={2}
-                  >
+                  <Pie data={devices} dataKey="users" nameKey="device" cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={2}>
                     {devices.map((entry, i) => (
                       <Cell key={i} fill={DEVICE_COLORS[entry.device] || CHART_COLORS[i]} />
                     ))}
@@ -1548,8 +2002,7 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
             <div className="w-1/2 space-y-3">
               {devices.map((d, i) => (
                 <div key={i} className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center"
-                       style={{ backgroundColor: `${DEVICE_COLORS[d.device] || CHART_COLORS[i]}15` }}>
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${DEVICE_COLORS[d.device] || CHART_COLORS[i]}15` }}>
                     {d.device === 'Mobile' && <Icon path={mdiCellphone} size={1.25} color="#3b82f6" />}
                     {d.device === 'Desktop' && <Icon path={mdiMonitor} size={1.25} color="#ef4444" />}
                     {d.device === 'Tablet' && <Icon path={mdiTablet} size={1.25} color="#f59e0b" />}
@@ -1566,48 +2019,7 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
           </div>
         </ChartCard>
 
-        {/* OS Breakdown */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          <SectionHeader title="Operating System" subtitle="User platform distribution" />
-          <div className="space-y-4">
-            {osList.slice(0, 6).map((os, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <span className="w-20 text-sm text-slate-700 font-medium truncate" title={os.os}>{os.os}</span>
-                <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${os.percentage}%`,
-                      backgroundColor: CHART_COLORS[i % CHART_COLORS.length]
-                    }}
-                  />
-                </div>
-                <span className="w-24 text-sm text-slate-600 text-right">
-                  {formatCompactNumber(os.users)} <span className="text-slate-400">({os.percentage}%)</span>
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <ChartCard title="Browser Usage" isEmpty={browsers.length === 0} height="h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={browsers.slice(0, 6)} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 10, fill: '#64748b' }} tickLine={false} />
-              <YAxis
-                type="category"
-                dataKey="browser"
-                tick={{ fontSize: 11, fill: '#64748b' }}
-                tickLine={false}
-                axisLine={false}
-                width={70}
-              />
-              <Tooltip content={<ChartTooltipWithPercent showPercent />} />
-              <Bar dataKey="users" name="Users" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
+        <EngagementQualityCard />
       </div>
     </div>
   );
@@ -1631,9 +2043,7 @@ function Sidebar({
   lastUpdated: Date | null;
 }) {
   return (
-    <aside className={`bg-white border-r border-slate-200 flex flex-col transition-all duration-300 ${
-      collapsed ? 'w-16' : 'w-64'
-    }`}>
+    <aside className={`bg-white border-r border-slate-200 flex flex-col transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
       {/* Sidebar Header */}
       <div className="h-16 border-b border-slate-100 flex items-center justify-between px-4">
         {!collapsed && (
@@ -1668,106 +2078,50 @@ function Sidebar({
       <nav className="flex-1 p-3 space-y-1">
         {TABS.map(tab => {
           const isActive = activeTab === tab.id;
-
           return (
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group ${
-                isActive
-                  ? 'text-slate-700'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                isActive ? 'text-slate-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
               }`}
               style={isActive ? { backgroundColor: '#4B5FD715' } : {}}
-              onMouseEnter={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.backgroundColor = '#f1f5f9';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }
-              }}
               title={collapsed ? tab.label : undefined}
             >
-              <div className={`p-2 rounded-lg transition-colors ${
-                isActive ? '' : 'bg-slate-100 group-hover:bg-slate-200'
-              }`}
-              style={isActive ? { backgroundColor: '#4B5FD720' } : {}}>
+              <div className={`p-2 rounded-lg transition-colors ${isActive ? '' : 'bg-slate-100 group-hover:bg-slate-200'}`} style={isActive ? { backgroundColor: '#4B5FD720' } : {}}>
                 <Icon path={tab.icon} size={1} color={isActive ? '#4B5FD7' : '#64748b'} />
               </div>
               {!collapsed && (
-                <div className="flex-1 text-left">
-                  <div className={`text-sm font-semibold ${isActive ? '' : ''}`}
-                  style={isActive ? { color: '#4B5FD7' } : {}}>{tab.label}</div>
-                  <div className="text-[11px] text-slate-400">{tab.description}</div>
+                <div className="text-left">
+                  <div className={`font-medium ${isActive ? 'text-slate-800' : ''}`}>{tab.label}</div>
+                  <div className="text-xs text-slate-400">{tab.description}</div>
                 </div>
-              )}
-              {!collapsed && isActive && (
-                <div className="w-1.5 h-8 rounded-full" style={{ backgroundColor: '#4B5FD7' }} />
               )}
             </button>
           );
         })}
       </nav>
       
-      {/* Footer section with collapse toggle */}
-      <div className="border-t border-slate-100 bg-slate-50/50">
-        {/* Collapse Toggle - styled like tab buttons */}
-        <div className="p-3">
-          <button
-            onClick={onToggleCollapse}
-            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group text-slate-600 hover:bg-slate-50 hover:text-slate-800"
-            title={collapsed ? 'Expand' : undefined}
-          >
-            <div className="p-2 rounded-lg transition-colors bg-slate-100 group-hover:bg-slate-200">
-              {collapsed ? (
-                <Icon path={mdiChevronRight} size={1} color="#64748b" />
-              ) : (
-                <Icon path={mdiChevronLeft} size={1} color="#64748b" />
-              )}
-            </div>
-            {!collapsed && (
-              <div className="flex-1 text-left">
-                <div className="text-sm font-semibold">Collapse</div>
-              </div>
-            )}
-          </button>
+      {/* Footer */}
+      {!collapsed && lastUpdated && (
+        <div className="p-4 border-t border-slate-100">
+          <div className="text-xs text-slate-400">
+            Last updated: {lastUpdated.toLocaleTimeString()}
+          </div>
         </div>
-        
-        {/* Powered by section */}
-        <div className="px-4 py-3 border-t border-slate-100">
-          {!collapsed ? (
-            <div className="space-y-1">
-              <div className="text-xs text-slate-500">
-                Powered by <span className="font-semibold text-slate-700">LotWorks</span>
-              </div>
-              {lastUpdated && (
-                <div className="text-[10px] text-slate-400">
-                  Updated {lastUpdated.toLocaleTimeString()}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center" title={lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : undefined}>
-              <Icon path={mdiClock} size={1} color="#94a3b8" style={{ margin: '0 auto' }} />
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </aside>
   );
 }
 
 // ============================================================================
-// MOBILE NAVIGATION
+// MOBILE NAV
 // ============================================================================
 
 function MobileNav({ 
   activeTab, 
-  onTabChange,
-  isOpen,
+  onTabChange, 
+  isOpen, 
   onClose,
   lastUpdated,
 }: { 
@@ -1780,41 +2134,41 @@ function MobileNav({
   if (!isOpen) return null;
   
   return (
-    <>
-      <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />
-      <div className="fixed inset-y-0 left-0 w-72 bg-white shadow-2xl z-50 lg:hidden animate-in slide-in-from-left duration-300 flex flex-col">
+    <div className="fixed inset-0 z-50 lg:hidden">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute left-0 top-0 bottom-0 w-72 bg-white shadow-2xl">
         <div className="h-16 border-b border-slate-100 flex items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-lime-400 to-emerald-500 flex items-center justify-center">
-              <Icon path={mdiChartBar} size={1} color="#0f172a" />
-            </div>
-            <div>
-              <div className="font-bold text-slate-800 text-sm">LotWorks</div>
-              <div className="text-[10px] text-slate-400 uppercase tracking-wider">Market Report</div>
-            </div>
+            <svg width="20" height="13" viewBox="0 0 52 42" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-8 h-5">
+              <path d="M13.6111 0L0 5.17937L16.8565 42H25.2778L13.6111 0Z" fill="#192A54"/>
+              <path d="M30.5278 23.5278L33.8333 9.52778L40.8333 35.1726H35.7377L30.5278 23.5278Z" fill="#192A54"/>
+              <path d="M21 22.5556L25.6667 39.2778L33.1009 7.53369L23.0247 11.2063L21 22.5556Z" fill="#4B5FD7"/>
+              <path d="M51.4171 2.16626L44.4485 4.80303L38.8889 23.917L41.4167 32.8615L51.4171 2.16626Z" fill="#4B5FD7"/>
+            </svg>
+            <span className="font-bold text-slate-800">LotWorks Insights</span>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg">
-            <Icon path={mdiClose} size={1.25} color="#64748b" />
+            <Icon path={mdiClose} size={1} color="#64748b" />
           </button>
         </div>
         
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="p-4 space-y-2">
           {TABS.map(tab => {
             const isActive = activeTab === tab.id;
-
             return (
               <button
                 key={tab.id}
                 onClick={() => { onTabChange(tab.id); onClose(); }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                  isActive
-                    ? 'bg-emerald-50 text-emerald-700'
-                    : 'text-slate-600 hover:bg-slate-50'
+                  isActive ? 'text-slate-800' : 'text-slate-600 hover:bg-slate-50'
                 }`}
+                style={isActive ? { backgroundColor: '#4B5FD715' } : {}}
               >
-                <Icon path={tab.icon} size={1.25} color={isActive ? '#059669' : '#94a3b8'} />
-                <div className="flex-1 text-left">
-                  <div className="font-semibold">{tab.label}</div>
+                <div className={`p-2 rounded-lg ${isActive ? '' : 'bg-slate-100'}`} style={isActive ? { backgroundColor: '#4B5FD720' } : {}}>
+                  <Icon path={tab.icon} size={1} color={isActive ? '#4B5FD7' : '#64748b'} />
+                </div>
+                <div className="text-left">
+                  <div className="font-medium">{tab.label}</div>
                   <div className="text-xs text-slate-400">{tab.description}</div>
                 </div>
               </button>
@@ -1822,58 +2176,53 @@ function MobileNav({
           })}
         </nav>
         
-        {/* Footer */}
-        <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-3">
-          <div className="text-xs text-slate-500">
-            Powered by <span className="font-semibold text-slate-700">LotWorks</span>
+        {lastUpdated && (
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-100">
+            <div className="text-xs text-slate-400">Last updated: {lastUpdated.toLocaleTimeString()}</div>
           </div>
-          {lastUpdated && (
-            <div className="text-[10px] text-slate-400 mt-1">
-              Updated {lastUpdated.toLocaleTimeString()}
-            </div>
-          )}
-        </div>
+        )}
       </div>
-    </>
+    </div>
   );
 }
 
 // ============================================================================
-// MAIN DASHBOARD
+// MAIN PAGE COMPONENT
 // ============================================================================
 
-export default function Dashboard() {
-  // State
-  const [report, setReport] = useState<MarketReport | null>(null);
+export default function InsightsPage() {
+  // Data state
   const [clients, setClients] = useState<string[]>([DEFAULT_CLIENT]);
   const [selectedClient, setSelectedClient] = useState(DEFAULT_CLIENT);
+  const [report, setReport] = useState<MarketReport | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  
+  // Date range (default last 30 days)
+  const [endDate, setEndDate] = useState(() => new Date());
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
     return d;
   });
-  const [endDate, setEndDate] = useState(() => new Date());
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
-  // Loading subtitles
+  
+  // Loading animation
   const loadingSubtitles = [
     "Fetching analytics data from your maps...",
-    "Analyzing your latest community trends...",
-    "Preparing market report intelligence..."
+    "Crunching the numbers...",
+    "Analyzing community performance...",
+    "Generating AI insights...",
+    "Almost there..."
   ];
   const [currentSubtitleIndex, setCurrentSubtitleIndex] = useState(0);
-
-  // Cycle through loading subtitles while loading
+  
   useEffect(() => {
     if (!loading) return;
-
     const interval = setInterval(() => {
       setCurrentSubtitleIndex((prev) => (prev + 1) % loadingSubtitles.length);
-    }, 2000); // Change subtitle every 2 seconds
-
+    }, 2000);
     return () => clearInterval(interval);
   }, [loading, loadingSubtitles.length]);
   
@@ -1881,15 +2230,15 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [emailSchedulerOpen, setEmailSchedulerOpen] = useState(false);
 
-  // Fetch clients on mount - NO auto-matching, just use first client if default not found
+  // Fetch clients on mount
   useEffect(() => {
     fetch('/api/clients')
       .then(res => res.ok ? res.json() : { clients: [DEFAULT_CLIENT] })
       .then(data => {
         const list = data.clients || [DEFAULT_CLIENT];
         setClients(list);
-        // If default client not in list, use first available
         if (!list.includes(DEFAULT_CLIENT) && list.length > 0) {
           setSelectedClient(list[0]);
         }
@@ -1990,6 +2339,13 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
+      {/* Email Scheduler Modal */}
+      <EmailSchedulerModal 
+        isOpen={emailSchedulerOpen} 
+        onClose={() => setEmailSchedulerOpen(false)}
+        clientName={selectedClient}
+      />
+      
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex">
         <Sidebar 
@@ -2048,19 +2404,23 @@ export default function Dashboard() {
               <Icon path={mdiRefresh} size={1.25} color="#475569" className={refreshing ? 'animate-spin' : ''} />
             </button>
             
+            {/* Email Scheduler Button */}
+            <button
+              onClick={() => setEmailSchedulerOpen(true)}
+              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-sm font-medium text-slate-700"
+              title="Schedule email alerts"
+            >
+              <Icon path={mdiBellRing} size={1} color="#64748b" />
+              <span className="hidden md:inline">Alerts</span>
+            </button>
+            
             <button
               onClick={handleExport}
               disabled={!report}
               className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-white transition-colors text-sm font-semibold disabled:opacity-50"
-              style={{
-                backgroundColor: '#4B5FD7',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#3B4FB7';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#4B5FD7';
-              }}
+              style={{ backgroundColor: '#4B5FD7' }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#3B4FB7'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4B5FD7'; }}
             >
               <Icon path={mdiDownload} size={1} />
               Export
