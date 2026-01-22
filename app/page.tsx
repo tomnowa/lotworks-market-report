@@ -1367,7 +1367,7 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
 
   return (
     <div className="space-y-6">
-      {/* Row 1: Top Cities + Active Users by Country Map */}
+      {/* Row 1: Top Cities + Lot Clicks by Day */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartCard
           title="Top Cities"
@@ -1432,6 +1432,35 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
           )}
         </ChartCard>
 
+        <ChartCard
+          title="Lot Clicks by Day"
+          subtitle="When users engage most"
+          isEmpty={clicksByDay.length === 0}
+          height={displayCities.length > CITIES_PER_PAGE ? "h-[450px]" : "h-[400px]"}
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={clicksByDayWithPercent}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+              <XAxis
+                dataKey="day"
+                tick={{ fontSize: 11, fill: '#64748b' }}
+                tickLine={false}
+                tickFormatter={v => v?.slice(0, 3)}
+              />
+              <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
+              <Tooltip content={<ChartTooltipWithPercent showPercent />} />
+              <Bar dataKey="clicks" name="Clicks" radius={[4, 4, 0, 0]}>
+                {clicksByDayWithPercent.map((entry, i) => (
+                  <Cell key={i} fill={getHeatmapColor(entry.clicks, maxDayClicks, 'green')} stroke="#10b981" strokeWidth={1} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+      </div>
+
+      {/* Row 2: Active Users by Country Map + Traffic Sources */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col">
           <SectionHeader
             title="Active Users by Country"
@@ -1464,9 +1493,34 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
             </>
           )}
         </div>
+
+        {/* Traffic Sources */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col">
+          <SectionHeader title="Traffic Sources" subtitle="Where visitors came from" />
+          {traffic.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center">
+              <EmptyState />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {traffic.slice(0, 7).map((t, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-slate-800 truncate">{t.source}</div>
+                    <div className="text-xs text-slate-500">{t.medium}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-slate-800">{t.sessions.toLocaleString()}</div>
+                    <div className="text-xs text-slate-500">{t.percentage}%</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Row 2: Device Category, Operating System, Browser Usage */}
+      {/* Row 3: Device Category, Operating System, Browser Usage */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ChartCard title="Device Category" isEmpty={devices.length === 0} height="h-72">
           <div className="flex items-center h-full">
@@ -1554,58 +1608,6 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
-      </div>
-
-      {/* Row 3: Lot Clicks by Day and Traffic Sources */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard
-          title="Lot Clicks by Day"
-          subtitle="When users engage most"
-          isEmpty={clicksByDay.length === 0}
-          height="h-72"
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={clicksByDayWithPercent}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-              <XAxis
-                dataKey="day"
-                tick={{ fontSize: 11, fill: '#64748b' }}
-                tickLine={false}
-                tickFormatter={v => v?.slice(0, 3)}
-              />
-              <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
-              <Tooltip content={<ChartTooltipWithPercent showPercent />} />
-              <Bar dataKey="clicks" name="Clicks" radius={[4, 4, 0, 0]}>
-                {clicksByDayWithPercent.map((entry, i) => (
-                  <Cell key={i} fill={getHeatmapColor(entry.clicks, maxDayClicks, 'green')} stroke="#10b981" strokeWidth={1} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        {/* Traffic Sources */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          <SectionHeader title="Traffic Sources" subtitle="Where visitors came from" />
-          {traffic.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="space-y-3">
-              {traffic.slice(0, 5).map((t, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-slate-800 truncate">{t.source}</div>
-                    <div className="text-xs text-slate-500">{t.medium}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold text-slate-800">{t.sessions.toLocaleString()}</div>
-                    <div className="text-xs text-slate-500">{t.percentage}%</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
