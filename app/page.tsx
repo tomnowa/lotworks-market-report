@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Icon from '@mdi/react';
 import {
   mdiRobotExcitedOutline,
@@ -41,6 +41,7 @@ import {
   mdiPulse,
   mdiAccountGroup,
   mdiAccountArrowRight,
+  mdiChartLineVariant,
 } from '@mdi/js';
 import {
   LineChart,
@@ -629,7 +630,8 @@ function EmailSchedulerModal({
 // ============================================================================
 
 function PeakActivityHeatmap({ data }: { data?: Record<string, Record<number, number>> }) {
-  const [hoveredCell, setHoveredCell] = useState<{ day: string; hour: number; value: number } | null>(null);
+  const [hoveredCell, setHoveredCell] = useState<{ day: string; hour: number; value: number; position: { x: number; y: number } } | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   
   // Generate sample data if none provided - in production this comes from GA4 API
   const heatmapData = useMemo(() => {
@@ -670,17 +672,17 @@ function PeakActivityHeatmap({ data }: { data?: Record<string, Record<number, nu
     return max;
   }, [heatmapData]);
 
-  // Heat color scale (cool to hot: gray -> yellow -> orange -> red)
+  // Premium color scale: slate → indigo → violet (sophisticated, not garish)
   const getHeatColor = (value: number) => {
     const intensity = value / maxValue;
-    if (intensity < 0.1) return '#f8fafc';
-    if (intensity < 0.2) return '#fef9c3'; // yellow-100
-    if (intensity < 0.35) return '#fde047'; // yellow-300
-    if (intensity < 0.5) return '#facc15'; // yellow-400
-    if (intensity < 0.65) return '#fb923c'; // orange-400
-    if (intensity < 0.8) return '#f97316'; // orange-500
-    if (intensity < 0.9) return '#ea580c'; // orange-600
-    return '#dc2626'; // red-600
+    if (intensity < 0.1) return '#f8fafc';  // slate-50
+    if (intensity < 0.2) return '#e2e8f0';  // slate-200
+    if (intensity < 0.3) return '#c7d2fe';  // indigo-200
+    if (intensity < 0.45) return '#a5b4fc'; // indigo-300
+    if (intensity < 0.6) return '#818cf8';  // indigo-400
+    if (intensity < 0.75) return '#6366f1'; // indigo-500
+    if (intensity < 0.9) return '#7c3aed';  // violet-600
+    return '#6d28d9';                        // violet-700
   };
 
   // Day total for gradient intensity
@@ -697,9 +699,9 @@ function PeakActivityHeatmap({ data }: { data?: Record<string, Record<number, nu
 
   const getDayBackground = (day: string) => {
     const intensity = dayTotals.totals[day] / dayTotals.max;
-    // Subtle gradient from light to slightly warmer
-    const alpha = 0.03 + (intensity * 0.08);
-    return `rgba(251, 146, 60, ${alpha})`; // orange with variable alpha
+    // Subtle indigo tint based on day's total activity
+    const alpha = 0.02 + (intensity * 0.06);
+    return `rgba(99, 102, 241, ${alpha})`; // indigo-500 with variable alpha
   };
 
   const formatHour = (hour: number) => {
@@ -723,8 +725,24 @@ function PeakActivityHeatmap({ data }: { data?: Record<string, Record<number, nu
     return peaks.sort((a, b) => b.value - a.value).slice(0, 3);
   }, [heatmapData, maxValue]);
 
-  // Heat legend colors
-  const heatLegendColors = ['#f8fafc', '#fef9c3', '#fde047', '#facc15', '#fb923c', '#f97316', '#ea580c', '#dc2626'];
+  // Premium legend colors matching the scale
+  const heatLegendColors = ['#f8fafc', '#e2e8f0', '#c7d2fe', '#a5b4fc', '#818cf8', '#6366f1', '#7c3aed', '#6d28d9'];
+
+  const handleCellHover = (day: string, hour: number, value: number, event: React.MouseEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const gridRect = gridRef.current?.getBoundingClientRect();
+    if (gridRect) {
+      setHoveredCell({
+        day,
+        hour,
+        value,
+        position: {
+          x: rect.left - gridRect.left + rect.width / 2,
+          y: rect.top - gridRect.top - 8
+        }
+      });
+    }
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
@@ -732,10 +750,10 @@ function PeakActivityHeatmap({ data }: { data?: Record<string, Record<number, nu
       
       {/* Insight Banner - Standardized style */}
       {peakTimes.length > 0 && (
-        <div className="mb-5 p-3 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border border-orange-100">
+        <div className="mb-5 p-3 bg-gradient-to-r from-indigo-50 to-violet-50 rounded-xl border border-indigo-100">
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Icon path={mdiPulse} size={0.9} color="#ea580c" />
+            <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Icon path={mdiPulse} size={0.9} color="#6366f1" />
             </div>
             <div>
               <p className="text-sm font-medium text-slate-800">
@@ -751,7 +769,26 @@ function PeakActivityHeatmap({ data }: { data?: Record<string, Record<number, nu
       
       {/* Heatmap Grid - Responsive */}
       <div className="overflow-x-auto">
-        <div className="w-full min-w-[550px]">
+        <div ref={gridRef} className="w-full min-w-[550px] relative">
+          {/* Floating Tooltip */}
+          {hoveredCell && (
+            <div 
+              className="absolute z-20 px-3 py-2 bg-slate-800 rounded-lg text-white text-sm whitespace-nowrap transform -translate-x-1/2 -translate-y-full pointer-events-none shadow-lg"
+              style={{ left: hoveredCell.position.x, top: hoveredCell.position.y }}
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">{hoveredCell.day} {formatHour(hoveredCell.hour)}</span>
+                <span className="text-slate-400">•</span>
+                <span>{hoveredCell.value} sessions</span>
+                <span className={hoveredCell.value >= maxValue * 0.7 ? 'text-violet-400' : 'text-slate-400'}>
+                  ({Math.round((hoveredCell.value / maxValue) * 100)}%)
+                </span>
+              </div>
+              {/* Tooltip arrow */}
+              <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-slate-800" />
+            </div>
+          )}
+          
           {/* Hour labels */}
           <div className="flex mb-2 ml-14 pr-2">
             {hours.filter((_, i) => i % 3 === 0).map(hour => (
@@ -762,7 +799,7 @@ function PeakActivityHeatmap({ data }: { data?: Record<string, Record<number, nu
           </div>
           
           {/* Grid rows */}
-          {days.map((day, dayIndex) => (
+          {days.map((day) => (
             <div 
               key={day} 
               className="flex items-center mb-1.5 rounded-lg py-1"
@@ -780,10 +817,10 @@ function PeakActivityHeatmap({ data }: { data?: Record<string, Record<number, nu
                     <div
                       key={hour}
                       className={`flex-1 h-7 rounded-sm cursor-pointer transition-all duration-150 ${
-                        isHovered ? 'ring-2 ring-orange-400 ring-offset-1 scale-110 z-10' : ''
-                      } ${isPeak ? 'ring-1 ring-red-400' : ''}`}
+                        isHovered ? 'ring-2 ring-violet-400 ring-offset-1 scale-110 z-10' : ''
+                      } ${isPeak ? 'ring-1 ring-violet-400' : ''}`}
                       style={{ backgroundColor: getHeatColor(value), minWidth: '16px' }}
-                      onMouseEnter={() => setHoveredCell({ day, hour, value })}
+                      onMouseEnter={(e) => handleCellHover(day, hour, value, e)}
                       onMouseLeave={() => setHoveredCell(null)}
                     />
                   );
@@ -794,27 +831,15 @@ function PeakActivityHeatmap({ data }: { data?: Record<string, Record<number, nu
         </div>
       </div>
       
-      {/* Tooltip */}
-      {hoveredCell && (
-        <div className="mt-4 p-2.5 bg-slate-800 rounded-lg text-white text-sm inline-flex items-center gap-2">
-          <span className="font-semibold">{hoveredCell.day} {formatHour(hoveredCell.hour)}</span>
-          <span className="text-slate-400">•</span>
-          <span>{hoveredCell.value} sessions</span>
-          <span className={hoveredCell.value >= maxValue * 0.7 ? 'text-orange-400' : 'text-slate-400'}>
-            ({Math.round((hoveredCell.value / maxValue) * 100)}% of peak)
-          </span>
-        </div>
-      )}
-      
-      {/* Heat Legend */}
+      {/* Legend */}
       <div className="mt-5 flex items-center justify-center gap-3 text-xs text-slate-600">
-        <span className="font-medium">Cool</span>
+        <span className="font-medium">Low</span>
         <div className="flex gap-0.5">
           {heatLegendColors.map((color, i) => (
             <div key={i} className="w-5 h-5 rounded-sm" style={{ backgroundColor: color }} />
           ))}
         </div>
-        <span className="font-medium">Hot</span>
+        <span className="font-medium">High</span>
       </div>
     </div>
   );
@@ -979,10 +1004,46 @@ function EngagementQualityCard({ data }: { data?: { engagementRate: number; avgD
   };
 
   const getEngagementLevel = (rate: number) => {
-    if (rate >= 60) return { label: 'Excellent', color: 'text-emerald-600', bg: 'bg-emerald-500' };
-    if (rate >= 45) return { label: 'Good', color: 'text-blue-600', bg: 'bg-blue-500' };
-    if (rate >= 30) return { label: 'Average', color: 'text-amber-600', bg: 'bg-amber-500' };
-    return { label: 'Needs Work', color: 'text-red-600', bg: 'bg-red-500' };
+    if (rate >= 60) return { 
+      label: 'Excellent', 
+      title: 'Strong Engagement',
+      text: 'Your engagement rate exceeds industry benchmarks. Visitors are highly interested.',
+      gradient: 'from-emerald-50 to-teal-50',
+      border: 'border-emerald-100',
+      iconBg: 'bg-emerald-100',
+      iconColor: '#10b981',
+      barColor: 'bg-gradient-to-r from-emerald-500 to-teal-500'
+    };
+    if (rate >= 45) return { 
+      label: 'Good', 
+      title: 'Healthy Engagement',
+      text: 'Above average for real estate. Room to optimize for even better results.',
+      gradient: 'from-blue-50 to-indigo-50',
+      border: 'border-blue-100',
+      iconBg: 'bg-blue-100',
+      iconColor: '#3b82f6',
+      barColor: 'bg-gradient-to-r from-blue-500 to-indigo-500'
+    };
+    if (rate >= 30) return { 
+      label: 'Average', 
+      title: 'Room for Growth',
+      text: 'Engagement is typical. Consider improving page load speed and content relevance.',
+      gradient: 'from-amber-50 to-orange-50',
+      border: 'border-amber-100',
+      iconBg: 'bg-amber-100',
+      iconColor: '#f59e0b',
+      barColor: 'bg-gradient-to-r from-amber-500 to-orange-500'
+    };
+    return { 
+      label: 'Needs Work', 
+      title: 'Low Engagement',
+      text: 'Visitors leave quickly. Review UX, content, and technical performance.',
+      gradient: 'from-red-50 to-rose-50',
+      border: 'border-red-100',
+      iconBg: 'bg-red-100',
+      iconColor: '#ef4444',
+      barColor: 'bg-gradient-to-r from-red-500 to-rose-500'
+    };
   };
   
   const level = getEngagementLevel(metrics.engagementRate);
@@ -991,55 +1052,56 @@ function EngagementQualityCard({ data }: { data?: { engagementRate: number; avgD
     <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
       <SectionHeader title="Engagement Quality" subtitle="How deeply visitors engage" />
       
-      {/* Main Gauge */}
-      <div className="flex items-center gap-6 mb-6">
-        <div className="relative w-28 h-28">
-          <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-            <circle cx="50" cy="50" r="42" fill="none" stroke="#f1f5f9" strokeWidth="8" />
-            <circle 
-              cx="50" cy="50" r="42" 
-              fill="none" 
-              stroke="url(#engagementGradient)"
-              strokeWidth="8"
-              strokeDasharray={`${metrics.engagementRate * 2.64} 264`}
-              strokeLinecap="round"
-            />
-            <defs>
-              <linearGradient id="engagementGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#10b981" />
-                <stop offset="100%" stopColor="#4B5FD7" />
-              </linearGradient>
-            </defs>
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-3xl font-bold text-slate-800">{metrics.engagementRate}%</span>
-            <span className={`text-xs font-semibold ${level.color}`}>{level.label}</span>
+      {/* Insight Banner - Standardized style */}
+      <div className={`mb-5 p-3 bg-gradient-to-r ${level.gradient} rounded-xl border ${level.border}`}>
+        <div className="flex items-start gap-3">
+          <div className={`w-8 h-8 ${level.iconBg} rounded-lg flex items-center justify-center flex-shrink-0`}>
+            <Icon path={mdiChartLineVariant} size={0.9} color={level.iconColor} />
           </div>
-        </div>
-        
-        <div className="flex-1">
-          <div className="text-sm text-slate-600 mb-2">Engagement Rate measures meaningful interactions vs. bounces</div>
-          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${level.color} bg-opacity-10`}
-               style={{ backgroundColor: `${level.bg.replace('bg-', '')}15` }}>
-            <div className={`w-2 h-2 rounded-full ${level.bg}`} />
-            {metrics.engagementRate >= 50 ? 'Above average for real estate' : 'Room for improvement'}
+          <div>
+            <p className="text-sm font-medium text-slate-800">{level.title}</p>
+            <p className="text-xs text-slate-600 mt-0.5">{level.text}</p>
           </div>
         </div>
       </div>
       
+      {/* Engagement Rate Bar */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-slate-700">Engagement Rate</span>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-bold text-slate-800">{metrics.engagementRate}%</span>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${level.iconBg}`} style={{ color: level.iconColor }}>
+              {level.label}
+            </span>
+          </div>
+        </div>
+        <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+          <div 
+            className={`h-full ${level.barColor} rounded-full transition-all duration-500`}
+            style={{ width: `${metrics.engagementRate}%` }}
+          />
+        </div>
+        <div className="flex justify-between mt-1.5 text-[10px] text-slate-400">
+          <span>0%</span>
+          <span className="text-slate-500 font-medium">Industry avg: 45%</span>
+          <span>100%</span>
+        </div>
+      </div>
+      
       {/* Secondary Metrics */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-3">
         <div className="text-center p-3 bg-slate-50 rounded-xl">
-          <div className="text-xl font-bold text-slate-800">{metrics.avgDuration}</div>
-          <div className="text-xs text-slate-500 mt-1">Avg. Session</div>
+          <div className="text-lg font-bold text-slate-800">{metrics.avgDuration}</div>
+          <div className="text-[11px] text-slate-500 mt-0.5">Avg. Session</div>
         </div>
         <div className="text-center p-3 bg-slate-50 rounded-xl">
-          <div className="text-xl font-bold text-slate-800">{metrics.bounceRate}%</div>
-          <div className="text-xs text-slate-500 mt-1">Bounce Rate</div>
+          <div className="text-lg font-bold text-slate-800">{metrics.bounceRate}%</div>
+          <div className="text-[11px] text-slate-500 mt-0.5">Bounce Rate</div>
         </div>
         <div className="text-center p-3 bg-slate-50 rounded-xl">
-          <div className="text-xl font-bold text-slate-800">{metrics.sessionsPerUser}</div>
-          <div className="text-xs text-slate-500 mt-1">Sessions/User</div>
+          <div className="text-lg font-bold text-slate-800">{metrics.sessionsPerUser}</div>
+          <div className="text-[11px] text-slate-500 mt-0.5">Sessions/User</div>
         </div>
       </div>
     </div>
@@ -1875,9 +1937,41 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
 
   return (
     <div className="space-y-6">
-      {/* Row 1: Engagement Intelligence (New!) */}
+      {/* Row 1: Device & Activity Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <NewVsReturningCard />
+        <ChartCard title="Device Category" isEmpty={devices.length === 0} height="h-auto min-h-[320px]">
+          <div className="flex items-center gap-4 py-2">
+            <div className="w-2/5 h-44 flex-shrink-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={devices} dataKey="users" nameKey="device" cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={2}>
+                    {devices.map((entry, i) => (
+                      <Cell key={i} fill={DEVICE_COLORS[entry.device] || CHART_COLORS[i]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex-1 space-y-3">
+              {devices.map((d, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${DEVICE_COLORS[d.device] || CHART_COLORS[i]}15` }}>
+                    {d.device === 'Mobile' && <Icon path={mdiCellphone} size={1.25} color="#3b82f6" />}
+                    {d.device === 'Desktop' && <Icon path={mdiMonitor} size={1.25} color="#ef4444" />}
+                    {d.device === 'Tablet' && <Icon path={mdiTablet} size={1.25} color="#f59e0b" />}
+                    {d.device === 'Smart tv' && <Icon path={mdiTelevision} size={1.25} color="#8b5cf6" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-slate-800">{d.device === 'Smart tv' ? 'Smart TV' : d.device}</div>
+                    <div className="text-sm text-slate-500">{d.users.toLocaleString()} users</div>
+                  </div>
+                  <div className="text-xl font-bold text-slate-800 flex-shrink-0">{d.percentage}%</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </ChartCard>
         <PeakActivityHeatmap />
       </div>
 
@@ -2001,42 +2095,9 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
         </div>
       </div>
 
-      {/* Row 4: Device + Engagement Quality */}
+      {/* Row 4: Visitor Engagement */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Device Category" isEmpty={devices.length === 0} height="h-auto min-h-[320px]">
-          <div className="flex items-center gap-4 py-2">
-            <div className="w-2/5 h-44 flex-shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={devices} dataKey="users" nameKey="device" cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={2}>
-                    {devices.map((entry, i) => (
-                      <Cell key={i} fill={DEVICE_COLORS[entry.device] || CHART_COLORS[i]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex-1 space-y-3">
-              {devices.map((d, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${DEVICE_COLORS[d.device] || CHART_COLORS[i]}15` }}>
-                    {d.device === 'Mobile' && <Icon path={mdiCellphone} size={1.25} color="#3b82f6" />}
-                    {d.device === 'Desktop' && <Icon path={mdiMonitor} size={1.25} color="#ef4444" />}
-                    {d.device === 'Tablet' && <Icon path={mdiTablet} size={1.25} color="#f59e0b" />}
-                    {d.device === 'Smart tv' && <Icon path={mdiTelevision} size={1.25} color="#8b5cf6" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-slate-800">{d.device === 'Smart tv' ? 'Smart TV' : d.device}</div>
-                    <div className="text-sm text-slate-500">{d.users.toLocaleString()} users</div>
-                  </div>
-                  <div className="text-xl font-bold text-slate-800 flex-shrink-0">{d.percentage}%</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </ChartCard>
-
+        <NewVsReturningCard />
         <EngagementQualityCard />
       </div>
     </div>
