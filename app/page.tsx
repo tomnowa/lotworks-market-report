@@ -2383,18 +2383,24 @@ export default function InsightsPage() {
   if (isInitialLoading || (!report && !error)) {
     return (
       <div
-        className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-900 relative overflow-hidden"
+        className="min-h-screen flex items-center justify-center bg-slate-950 text-white relative overflow-hidden"
         role="status"
         aria-live="polite"
         aria-busy="true"
       >
+        <div className="absolute inset-0">
+          <div className="absolute -top-32 right-12 h-80 w-80 rounded-full bg-indigo-500/15 blur-[140px]" />
+          <div className="absolute bottom-0 left-10 h-64 w-64 rounded-full bg-sky-400/15 blur-[140px]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(148,163,255,0.14),_transparent_55%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom,_rgba(56,189,248,0.12),_transparent_60%)]" />
+        </div>
         <div className="relative z-10 w-full max-w-3xl px-6">
-          <div className="bg-white border border-slate-200 rounded-[28px] p-8 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.35)]">
+          <div className="bg-slate-900/70 border border-white/10 rounded-[28px] p-8 shadow-[0_32px_80px_-40px_rgba(15,23,42,0.9)] backdrop-blur">
             <div className="flex flex-col items-center text-center gap-6">
               <span className="sr-only">Loading LotWorks Insights. Please wait.</span>
               <div className="relative">
-                <div className="absolute inset-0 rounded-[22px] bg-indigo-200/50 blur-2xl animate-pulse motion-reduce:animate-none" />
-                <div className="relative flex items-center justify-center w-20 h-20 rounded-[22px] bg-white shadow-[0_16px_30px_-20px_rgba(79,70,229,0.4)]">
+                <div className="absolute inset-0 rounded-[22px] bg-indigo-500/25 blur-2xl animate-pulse motion-reduce:animate-none" />
+                <div className="relative flex items-center justify-center w-20 h-20 rounded-[22px] bg-white/90 shadow-[0_16px_30px_-16px_rgba(79,70,229,0.7)]">
                   <svg width="52" height="42" viewBox="0 0 52 42" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-12 h-12">
                     <path d="M13.6111 0L0 5.17937L16.8565 42H25.2778L13.6111 0Z" fill="#192A54"/>
                     <path d="M30.5278 23.5278L33.8333 9.52778L40.8333 35.1726H35.7377L30.5278 23.5278Z" fill="#192A54"/>
@@ -2404,23 +2410,40 @@ export default function InsightsPage() {
                 </div>
               </div>
               <div>
-                <p className="text-base uppercase tracking-[0.4em] text-indigo-700">LotWorks Insights</p>
-                <h1 className="text-3xl md:text-4xl font-semibold mt-3 text-slate-900">Preparing your market intelligence</h1>
-                <p className="text-slate-500 mt-3 text-sm md:text-base">{LOADING_SUBTITLES[currentSubtitleIndex]}</p>
+                <p className="text-xs uppercase tracking-[0.45em] text-indigo-200/70">LotWorks Insights</p>
+                <h1 className="text-3xl md:text-4xl font-semibold mt-3 text-white/95">Preparing your market intelligence</h1>
+                <p className="text-indigo-100/70 mt-3 text-sm md:text-base">{LOADING_SUBTITLES[currentSubtitleIndex]}</p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-3 text-xs text-indigo-100/70" aria-hidden="true">
+                <span className="px-3 py-1 rounded-full bg-indigo-400/15 border border-indigo-200/20">AI-ready insights</span>
+                <span className="px-3 py-1 rounded-full bg-sky-400/10 border border-sky-200/20">Verified lot activity</span>
+                <span className="px-3 py-1 rounded-full bg-white/10 border border-white/10">Live map intelligence</span>
               </div>
               <div className="w-full">
                 <div className="flex items-center gap-4">
-                  <div className="h-2.5 flex-1 rounded-full bg-slate-200 overflow-hidden">
-                    <div className="loading-bar h-full rounded-full bg-gradient-to-r from-indigo-500 via-blue-500 to-sky-400" />
+                  <div className="h-2.5 flex-1 rounded-full bg-white/10 overflow-hidden">
+                    <div className="h-full w-1/2 bg-gradient-to-r from-sky-400 via-indigo-400 to-violet-400 animate-pulse motion-reduce:animate-none" />
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <Icon path={mdiPulse} size={0.9} color="#6366f1" />
+                  <div className="flex items-center gap-2 text-xs text-indigo-100/80">
+                    <Icon path={mdiPulse} size={0.9} color="#a5b4fc" />
                     Live sync
                   </div>
                 </div>
+                <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+                  {[
+                    { label: 'Communities analyzed', value: '48+' },
+                    { label: 'Engagement signals', value: '12k+' },
+                    { label: 'Trend vectors', value: 'Realtime' },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-[20px] border border-white/10 bg-white/5 p-4">
+                      <div className="text-lg font-semibold text-white/90">{item.value}</div>
+                      <div className="text-xs text-indigo-100/70 mt-1">{item.label}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <Icon path={mdiClock} size={0.8} color="#94a3b8" />
+              <div className="flex items-center gap-2 text-xs text-indigo-100/70">
+                <Icon path={mdiClock} size={0.8} color="#c7d2fe" />
                 Holding until every insight is ready.
               </div>
             </div>
