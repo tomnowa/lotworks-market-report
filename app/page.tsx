@@ -20,35 +20,6 @@ import type { MarketReport, CommunityPerformance, TopLot } from '@/types';
 import { MD3 } from '@/lib/theme';
 import dynamic from 'next/dynamic';
 
-// Google Analytics data type (extends MarketReport)
-interface GoogleAnalyticsData {
-  engagementByHour?: { hour: number; sessions: number }[];
-  newVsReturning?: { newUsers: number; returningUsers: number };
-  engagementRate?: number;
-  avgSessionDuration?: string;
-  pagesPerSession?: number;
-  bounceRate?: number;
-  totalSessions?: number;
-  uniqueUsers?: number;
-  deviceBreakdown?: Record<string, number>;
-  operatingSystem?: Record<string, number>;
-  trafficSources?: { source: string; sessions: number; percentage: number }[];
-  geoData?: { country: string; sessions: number }[];
-}
-
-// Daily trend data point
-interface DailyTrendData {
-  date: string;
-  mapLoads: number;
-  lotClicks: number;
-}
-
-// Extended report type with additional properties not in base MarketReport
-interface ExtendedMarketReport extends MarketReport {
-  googleAnalytics?: GoogleAnalyticsData;
-  dailyTrend?: DailyTrendData[];
-}
-
 const ChoroplethMap = dynamic(() => import('@/components/ChoroplethMap'), {
   ssr: false,
   loading: () => (
@@ -436,7 +407,7 @@ function EmailSchedulerModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 // PEAK ACTIVITY HEATMAP
 // =============================================================================
 
-function PeakActivityHeatmap({ analytics }: { analytics: GoogleAnalyticsData }) {
+function PeakActivityHeatmap({ report }: { report: MarketReport | null }) {
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   
@@ -444,13 +415,17 @@ function PeakActivityHeatmap({ analytics }: { analytics: GoogleAnalyticsData }) 
     const data: Record<string, Record<number, number>> = {};
     days.forEach(d => { data[d] = {}; hours.forEach(h => { data[d][h] = 0; }); });
     
-    if (analytics?.engagementByHour) {
-      analytics.engagementByHour.forEach(({ hour, sessions }) => {
-        const dayIdx = Math.floor(hour / 24) % 7;
-        const hourOfDay = hour % 24;
-        data[days[dayIdx]][hourOfDay] = sessions;
+    if (report?.peakActivityHours) {
+      // Use actual data from report
+      Object.entries(report.peakActivityHours).forEach(([day, hourData]) => {
+        if (data[day]) {
+          Object.entries(hourData).forEach(([hour, value]) => {
+            data[day][parseInt(hour)] = value;
+          });
+        }
       });
     } else {
+      // Generate sample data
       days.forEach((d, di) => {
         hours.forEach(h => {
           const base = (di < 5) ? (h >= 9 && h <= 17 ? 80 : 30) : 20;
@@ -459,7 +434,7 @@ function PeakActivityHeatmap({ analytics }: { analytics: GoogleAnalyticsData }) 
       });
     }
     return data;
-  }, [analytics]);
+  }, [report]);
 
   const maxVal = Math.max(...Object.values(heatmapData).flatMap(d => Object.values(d)));
   const peakDay = Object.entries(heatmapData).reduce((a, b) => 
@@ -534,20 +509,20 @@ function PeakActivityHeatmap({ analytics }: { analytics: GoogleAnalyticsData }) 
 // NEW VS RETURNING CARD
 // =============================================================================
 
-function NewVsReturningCard({ analytics }: { analytics: GoogleAnalyticsData }) {
+function NewVsReturningCard({ report }: { report: MarketReport | null }) {
   const data = useMemo(() => {
-    if (analytics?.newVsReturning) {
-      const total = analytics.newVsReturning.newUsers + analytics.newVsReturning.returningUsers;
+    if (report?.newVsReturning) {
+      const total = report.newVsReturning.new + report.newVsReturning.returning;
       return [
-        { name: 'New', value: analytics.newVsReturning.newUsers, color: MD3.colors.success, pct: total ? Math.round((analytics.newVsReturning.newUsers / total) * 100) : 0 },
-        { name: 'Returning', value: analytics.newVsReturning.returningUsers, color: '#8B5CF6', pct: total ? Math.round((analytics.newVsReturning.returningUsers / total) * 100) : 0 },
+        { name: 'New', value: report.newVsReturning.new, color: MD3.colors.success, pct: total ? Math.round((report.newVsReturning.new / total) * 100) : 0 },
+        { name: 'Returning', value: report.newVsReturning.returning, color: '#8B5CF6', pct: total ? Math.round((report.newVsReturning.returning / total) * 100) : 0 },
       ];
     }
     return [
       { name: 'New', value: 2847, color: MD3.colors.success, pct: 68 },
       { name: 'Returning', value: 1340, color: '#8B5CF6', pct: 32 },
     ];
-  }, [analytics]);
+  }, [report]);
 
   const total = data.reduce((s, d) => s + d.value, 0);
   const newPct = data[0].pct;
@@ -601,11 +576,12 @@ function NewVsReturningCard({ analytics }: { analytics: GoogleAnalyticsData }) {
 // ENGAGEMENT QUALITY CARD
 // =============================================================================
 
-function EngagementQualityCard({ analytics }: { analytics: GoogleAnalyticsData }) {
-  const engagementRate = analytics?.engagementRate ?? 67;
-  const avgDuration = analytics?.avgSessionDuration ?? '2m 34s';
-  const pagesPerSession = analytics?.pagesPerSession ?? 3.2;
-  const bounceRate = analytics?.bounceRate ?? 33;
+function EngagementQualityCard({ report }: { report: MarketReport | null }) {
+  const metrics = report?.engagementMetrics;
+  const engagementRate = metrics?.engagementRate ?? 67;
+  const avgDuration = metrics?.avgDuration ?? '2m 34s';
+  const sessionsPerUser = metrics?.sessionsPerUser ?? 1.4;
+  const bounceRate = metrics?.bounceRate ?? 33;
 
   const quality = engagementRate >= 70 ? 'Excellent' : engagementRate >= 50 ? 'Good' : engagementRate >= 30 ? 'Fair' : 'Needs Improvement';
   const qualityColor = engagementRate >= 70 ? MD3.colors.success : engagementRate >= 50 ? MD3.colors.info : engagementRate >= 30 ? MD3.colors.warning : MD3.colors.error;
@@ -633,7 +609,7 @@ function EngagementQualityCard({ analytics }: { analytics: GoogleAnalyticsData }
       <div className="grid grid-cols-3 gap-4">
         {[
           { label: 'Avg Duration', value: avgDuration },
-          { label: 'Pages/Session', value: pagesPerSession.toFixed(1) },
+          { label: 'Sessions/User', value: sessionsPerUser.toFixed(1) },
           { label: 'Bounce Rate', value: `${bounceRate}%` },
         ].map(m => (
           <div key={m.label} className="text-center p-3 bg-[var(--md-sys-color-surface-container-lowest)] rounded-[var(--md-sys-shape-corner-small)]">
@@ -657,7 +633,7 @@ function EngagementQualityCard({ analytics }: { analytics: GoogleAnalyticsData }
 
 interface AIInsight { type: 'hot'|'tip'|'warning'|'info'; title: string; description: string; }
 
-function generateAIInsights(report: ExtendedMarketReport | null): AIInsight[] {
+function generateAIInsights(report: MarketReport | null): AIInsight[] {
   if (!report) return [];
   const insights: AIInsight[] = [];
   const communities = report.communityPerformance || [];
@@ -969,18 +945,17 @@ function MobileNav({ activeTab, onTabChange, isOpen, onClose }: { activeTab: Tab
 // OVERVIEW CONTENT
 // =============================================================================
 
-function OverviewContent({ report }: { report: ExtendedMarketReport | null }) {
+function OverviewContent({ report }: { report: MarketReport | null }) {
   const insights = useMemo(() => generateAIInsights(report), [report]);
   const summary = report?.summary;
   const communities = report?.communityPerformance || [];
   const topLots = report?.topLots || [];
 
   const trendData = useMemo(() => {
-    if (!report?.dailyTrend?.length) return [];
-    return report.dailyTrend.map(d => ({
+    if (!report?.viewsOverTime?.length) return [];
+    return report.viewsOverTime.map(d => ({
       date: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      mapLoads: d.mapLoads,
-      lotClicks: d.lotClicks,
+      views: d.total,
     }));
   }, [report]);
 
@@ -990,8 +965,8 @@ function OverviewContent({ report }: { report: ExtendedMarketReport | null }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Map Loads" value={summary?.totalMapLoads ?? 0} change={summary?.mapLoadsChange} icon={mdiEye} accent />
         <StatCard title="Lot Clicks" value={summary?.totalLotClicks ?? 0} change={summary?.lotClicksChange} icon={mdiCursorPointer} />
-        <StatCard title="Click Rate" value={`${summary?.clickThroughRate ?? 0}%`} change={summary?.ctrChange} icon={mdiTarget} tooltip="Lot clicks ÷ Map loads × 100" />
-        <StatCard title="Avg Session" value={report?.googleAnalytics?.avgSessionDuration ?? '2m 34s'} icon={mdiClock} />
+        <StatCard title="Click Rate" value={`${summary?.clickThroughRate ?? 0}%`} change={summary?.clickRateChange} icon={mdiTarget} tooltip="Lot clicks ÷ Map loads × 100" />
+        <StatCard title="Avg Session" value={report?.engagementMetrics?.avgDuration ?? '2m 34s'} icon={mdiClock} />
       </div>
 
       {/* AI Insights */}
@@ -1015,15 +990,14 @@ function OverviewContent({ report }: { report: ExtendedMarketReport | null }) {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Trend Chart */}
-        <ChartCard title="Daily Trend" subtitle="Map loads and lot clicks over time" isEmpty={!trendData.length}>
+        <ChartCard title="Daily Trend" subtitle="Total map views over time" isEmpty={!trendData.length}>
           <ResponsiveContainer>
             <LineChart data={trendData} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--md-sys-color-outline-variant)" opacity={0.5} />
               <XAxis dataKey="date" tick={{ fill: 'var(--md-sys-color-on-surface-variant)', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: 'var(--md-sys-color-on-surface-variant)', fontSize: 11 }} axisLine={false} tickLine={false} width={40} />
               <Tooltip content={<ChartTooltipContent />} />
-              <Line type="monotone" dataKey="mapLoads" name="Map Loads" stroke={MD3.colors.primary} strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="lotClicks" name="Lot Clicks" stroke={MD3.colors.success} strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="views" name="Views" stroke={MD3.colors.primary} strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -1048,7 +1022,7 @@ function OverviewContent({ report }: { report: ExtendedMarketReport | null }) {
           <div className="md-card-outlined p-6 h-[400px]">
             <SectionHeader title="Geographic Distribution" subtitle="Visitor locations worldwide" />
             <div className="h-[calc(100%-60px)]">
-              <ChoroplethMap data={report?.googleAnalytics?.geoData || []} />
+              <ChoroplethMap data={report?.cityBreakdown || []} />
             </div>
           </div>
         </div>
@@ -1063,8 +1037,8 @@ function OverviewContent({ report }: { report: ExtendedMarketReport | null }) {
                     {i + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-[var(--md-sys-color-on-surface)] truncate">{lot.lotNumber || lot.lotId}</div>
-                    <div className="text-[var(--md-sys-typescale-label-small)] text-[var(--md-sys-color-on-surface-variant)] truncate">{lot.communityName}</div>
+                    <div className="font-medium text-[var(--md-sys-color-on-surface)] truncate">{lot.lot}</div>
+                    <div className="text-[var(--md-sys-typescale-label-small)] text-[var(--md-sys-color-on-surface-variant)] truncate">{lot.community}</div>
                   </div>
                   <div className="text-right">
                     <div className="font-semibold text-[var(--md-sys-color-on-surface)]">{lot.clicks}</div>
@@ -1086,7 +1060,7 @@ function OverviewContent({ report }: { report: ExtendedMarketReport | null }) {
 // MAP DETAILS CONTENT
 // =============================================================================
 
-function MapDetailsContent({ report, client, startDate, endDate }: { report: ExtendedMarketReport | null; client: string; startDate: string; endDate: string }) {
+function MapDetailsContent({ report, client, startDate, endDate }: { report: MarketReport | null; client: string; startDate: string; endDate: string }) {
   const [selectedCommunity, setSelectedCommunity] = useState<CommunityPerformance | null>(null);
   const [communityLots, setCommunityLots] = useState<TopLot[]>([]);
   const [loadingLots, setLoadingLots] = useState(false);
@@ -1121,12 +1095,10 @@ function MapDetailsContent({ report, client, startDate, endDate }: { report: Ext
   ];
 
   const lotColumns = [
-    { key: 'lotNumber', label: 'Lot', sortable: true, render: (l: TopLot) => l.lotNumber || l.lotId },
+    { key: 'lot', label: 'Lot', sortable: true, render: (l: TopLot) => l.lot },
     { key: 'clicks', label: 'Clicks', sortable: true, render: (l: TopLot) => l.clicks.toLocaleString() },
-    { key: 'status', label: 'Status', render: (l: TopLot) => (
-      <span className={`md-tag ${l.status === 'available' ? 'bg-emerald-100 text-emerald-700' : l.status === 'sold' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-        {l.status || 'Unknown'}
-      </span>
+    { key: 'share', label: 'Share', sortable: true, render: (l: TopLot) => (
+      <span className="md-tag">{l.share}%</span>
     )},
   ];
 
@@ -1187,43 +1159,43 @@ function MapDetailsContent({ report, client, startDate, endDate }: { report: Ext
 // ANALYTICS CONTENT
 // =============================================================================
 
-function AnalyticsContent({ report }: { report: ExtendedMarketReport | null }) {
-  const analytics = report?.googleAnalytics;
-
+function AnalyticsContent({ report }: { report: MarketReport | null }) {
   const deviceData = useMemo(() => {
-    if (analytics?.deviceBreakdown) {
-      return Object.entries(analytics.deviceBreakdown).map(([name, value]) => ({
-        name: name.charAt(0).toUpperCase() + name.slice(1),
-        value: value as number,
-        color: MD3.device[name.charAt(0).toUpperCase() + name.slice(1)] || MD3.chart[0],
+    if (report?.deviceBreakdown?.length) {
+      return report.deviceBreakdown.map((d) => ({
+        name: d.device,
+        value: d.users,
+        percentage: d.percentage,
+        color: MD3.device[d.device] || MD3.chart[0],
       }));
     }
     return [
-      { name: 'Desktop', value: 58, color: MD3.device.Desktop },
-      { name: 'Mobile', value: 35, color: MD3.device.Mobile },
-      { name: 'Tablet', value: 7, color: MD3.device.Tablet },
+      { name: 'Desktop', value: 58, percentage: 58, color: MD3.device.Desktop },
+      { name: 'Mobile', value: 35, percentage: 35, color: MD3.device.Mobile },
+      { name: 'Tablet', value: 7, percentage: 7, color: MD3.device.Tablet },
     ];
-  }, [analytics]);
+  }, [report]);
 
   const osData = useMemo(() => {
-    if (analytics?.operatingSystem) {
-      return Object.entries(analytics.operatingSystem).map(([name, value]) => ({
-        name,
-        value: value as number,
-        color: MD3.os[name] || MD3.chart[Object.keys(analytics.operatingSystem!).indexOf(name) % MD3.chart.length],
+    if (report?.osBreakdown?.length) {
+      return report.osBreakdown.map((o, i) => ({
+        name: o.os,
+        value: o.users,
+        percentage: o.percentage,
+        color: MD3.os[o.os] || MD3.chart[i % MD3.chart.length],
       }));
     }
     return [
-      { name: 'Windows', value: 45, color: MD3.os.Windows },
-      { name: 'macOS', value: 28, color: MD3.os.macOS },
-      { name: 'iOS', value: 15, color: MD3.os.iOS },
-      { name: 'Android', value: 12, color: MD3.os.Android },
+      { name: 'Windows', value: 45, percentage: 45, color: MD3.os.Windows },
+      { name: 'macOS', value: 28, percentage: 28, color: MD3.os.macOS },
+      { name: 'iOS', value: 15, percentage: 15, color: MD3.os.iOS },
+      { name: 'Android', value: 12, percentage: 12, color: MD3.os.Android },
     ];
-  }, [analytics]);
+  }, [report]);
 
   const trafficData = useMemo(() => {
-    if (analytics?.trafficSources) {
-      return analytics.trafficSources.map((s, i) => ({
+    if (report?.trafficSources?.length) {
+      return report.trafficSources.map((s, i) => ({
         name: s.source,
         sessions: s.sessions,
         percentage: s.percentage,
@@ -1237,26 +1209,29 @@ function AnalyticsContent({ report }: { report: ExtendedMarketReport | null }) {
       { name: 'Social', sessions: 412, percentage: 9, color: MD3.chart[3] },
       { name: 'Email', sessions: 198, percentage: 5, color: MD3.chart[4] },
     ];
-  }, [analytics]);
+  }, [report]);
+
+  const metrics = report?.engagementMetrics;
+  const totalUsers = report?.deviceBreakdown?.reduce((sum, d) => sum + d.users, 0) || 4187;
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Top Row - Key Metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard title="Total Sessions" value={analytics?.totalSessions || 4187} icon={mdiAccountGroup} />
-        <StatCard title="Unique Users" value={analytics?.uniqueUsers || 3542} icon={mdiAccountArrowRight} />
-        <StatCard title="Engagement Rate" value={`${analytics?.engagementRate || 67}%`} icon={mdiPulse} />
-        <StatCard title="Pages/Session" value={analytics?.pagesPerSession?.toFixed(1) || '3.2'} icon={mdiChartLineVariant} />
+        <StatCard title="Total Users" value={totalUsers} icon={mdiAccountGroup} />
+        <StatCard title="Engagement Rate" value={`${metrics?.engagementRate ?? 67}%`} icon={mdiPulse} />
+        <StatCard title="Avg Duration" value={metrics?.avgDuration ?? '2m 34s'} icon={mdiClock} />
+        <StatCard title="Sessions/User" value={metrics?.sessionsPerUser?.toFixed(1) ?? '1.4'} icon={mdiChartLineVariant} />
       </div>
 
       {/* Engagement Cards Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <NewVsReturningCard analytics={analytics} />
-        <EngagementQualityCard analytics={analytics} />
+        <NewVsReturningCard report={report} />
+        <EngagementQualityCard report={report} />
       </div>
 
       {/* Heatmap */}
-      <PeakActivityHeatmap analytics={analytics} />
+      <PeakActivityHeatmap report={report} />
 
       {/* Device, OS, Traffic Sources */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1287,21 +1262,17 @@ function AnalyticsContent({ report }: { report: ExtendedMarketReport | null }) {
         <div className="md-card-outlined p-6">
           <SectionHeader title="Operating Systems" subtitle="User platforms" />
           <div className="space-y-3">
-            {osData.slice(0, 5).map(os => {
-              const total = osData.reduce((s, o) => s + o.value, 0);
-              const pct = total ? Math.round((os.value / total) * 100) : 0;
-              return (
-                <div key={os.name}>
-                  <div className="flex justify-between text-[var(--md-sys-typescale-body-small)] mb-1">
-                    <span className="text-[var(--md-sys-color-on-surface)]">{os.name}</span>
-                    <span className="text-[var(--md-sys-color-on-surface-variant)]">{pct}%</span>
-                  </div>
-                  <div className="md-progress-bar h-2">
-                    <div className="md-progress-fill" style={{ width: `${pct}%`, backgroundColor: os.color }} />
-                  </div>
+            {osData.slice(0, 5).map(os => (
+              <div key={os.name}>
+                <div className="flex justify-between text-[var(--md-sys-typescale-body-small)] mb-1">
+                  <span className="text-[var(--md-sys-color-on-surface)]">{os.name}</span>
+                  <span className="text-[var(--md-sys-color-on-surface-variant)]">{os.percentage}%</span>
                 </div>
-              );
-            })}
+                <div className="md-progress-bar h-2">
+                  <div className="md-progress-fill" style={{ width: `${os.percentage}%`, backgroundColor: os.color }} />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -1331,7 +1302,7 @@ function AnalyticsContent({ report }: { report: ExtendedMarketReport | null }) {
       <div className="md-card-outlined p-6">
         <SectionHeader title="Geographic Distribution" subtitle="Visitor locations by region" />
         <div className="h-[400px]">
-          <ChoroplethMap data={analytics?.geoData || []} />
+          <ChoroplethMap data={report?.cityBreakdown || []} />
         </div>
       </div>
     </div>
@@ -1355,7 +1326,7 @@ export default function InsightsPage() {
   const [startDate, setStartDate] = useState(() => new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
   const [endDate, setEndDate] = useState(() => new Date());
 
-  const [report, setReport] = useState<ExtendedMarketReport | null>(null);
+  const [report, setReport] = useState<MarketReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
