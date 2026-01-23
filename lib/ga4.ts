@@ -75,6 +75,141 @@ function formatDuration(seconds: number): string {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
+const DAY_OF_WEEK_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function normalizeDayLabel(dayIndex: number): string {
+  return DAY_OF_WEEK_LABELS[dayIndex] ?? `Day${dayIndex}`;
+}
+
+export async function fetchPeakActivityHours(
+  clientName: string,
+  startDate: string,
+  endDate: string
+): Promise<Record<string, Record<number, number>>> {
+  const client = getClient();
+
+  const [response] = await client.runReport({
+    property: `properties/${PROPERTY_ID}`,
+    dateRanges: [{ startDate, endDate }],
+    dimensions: [{ name: 'dayOfWeek' }, { name: 'hourOfDay' }],
+    metrics: [{ name: 'sessions' }],
+    dimensionFilter: {
+      filter: {
+        fieldName: 'customEvent:c_client',
+        stringFilter: { matchType: 'EXACT', value: clientName },
+      },
+    },
+    orderBys: [
+      { dimension: { dimensionName: 'dayOfWeek' }, desc: false },
+      { dimension: { dimensionName: 'hourOfDay' }, desc: false },
+    ],
+  });
+
+  const activity: Record<string, Record<number, number>> = {};
+
+  for (const row of response.rows || []) {
+    const dayValue = row.dimensionValues?.[0]?.value;
+    const hourValue = row.dimensionValues?.[1]?.value;
+    const sessions = parseInt(row.metricValues?.[0]?.value || '0', 10);
+
+    const dayIndex = dayValue ? Number.parseInt(dayValue, 10) : NaN;
+    const hourIndex = hourValue ? Number.parseInt(hourValue, 10) : NaN;
+
+    if (Number.isNaN(dayIndex) || Number.isNaN(hourIndex)) {
+      continue;
+    }
+
+    const dayLabel = normalizeDayLabel(dayIndex);
+    if (!activity[dayLabel]) {
+      activity[dayLabel] = {};
+    }
+
+    activity[dayLabel][hourIndex] = sessions;
+  }
+
+  return activity;
+}
+
+export async function fetchNewVsReturning(
+  clientName: string,
+  startDate: string,
+  endDate: string
+): Promise<{ new: number; returning: number }> {
+  const client = getClient();
+
+  const [response] = await client.runReport({
+    property: `properties/${PROPERTY_ID}`,
+    dateRanges: [{ startDate, endDate }],
+    dimensions: [{ name: 'newVsReturning' }],
+    metrics: [{ name: 'totalUsers' }],
+    dimensionFilter: {
+      filter: {
+        fieldName: 'customEvent:c_client',
+        stringFilter: { matchType: 'EXACT', value: clientName },
+      },
+    },
+  });
+
+  let newUsers = 0;
+  let returningUsers = 0;
+
+  for (const row of response.rows || []) {
+    const segment = row.dimensionValues?.[0]?.value?.toLowerCase() ?? '';
+    const users = parseInt(row.metricValues?.[0]?.value || '0', 10);
+
+    if (segment.includes('new')) {
+      newUsers = users;
+    } else if (segment.includes('return')) {
+      returningUsers = users;
+    }
+  }
+
+  return { new: newUsers, returning: returningUsers };
+}
+
+export async function fetchEngagementMetrics(
+  clientName: string,
+  startDate: string,
+  endDate: string
+): Promise<{
+  engagementRate: number;
+  avgDuration: string;
+  bounceRate: number;
+  sessionsPerUser: number;
+}> {
+  const client = getClient();
+
+  const [response] = await client.runReport({
+    property: `properties/${PROPERTY_ID}`,
+    dateRanges: [{ startDate, endDate }],
+    metrics: [
+      { name: 'engagementRate' },
+      { name: 'averageSessionDuration' },
+      { name: 'bounceRate' },
+      { name: 'sessionsPerUser' },
+    ],
+    dimensionFilter: {
+      filter: {
+        fieldName: 'customEvent:c_client',
+        stringFilter: { matchType: 'EXACT', value: clientName },
+      },
+    },
+  });
+
+  const row = response.rows?.[0];
+  const engagementRate = Number.parseFloat(row?.metricValues?.[0]?.value || '0');
+  const avgDurationSeconds = Number.parseFloat(row?.metricValues?.[1]?.value || '0');
+  const bounceRate = Number.parseFloat(row?.metricValues?.[2]?.value || '0');
+  const sessionsPerUser = Number.parseFloat(row?.metricValues?.[3]?.value || '0');
+
+  return {
+    engagementRate,
+    avgDuration: formatDuration(avgDurationSeconds),
+    bounceRate,
+    sessionsPerUser,
+  };
+}
+
 export async function fetchMapLoads(
   clientName: string,
   startDate: string,
@@ -944,7 +1079,10 @@ export async function buildFullReport(
     browserBreakdown,
     osBreakdown,
     trafficSources,
-    avgTimeOnMap
+    avgTimeOnMap,
+    peakActivityHours,
+    newVsReturning,
+    engagementMetrics,
   ] = await Promise.all([
     fetchMapLoads(clientName, startDate, endDate),
     fetchLotClicks(clientName, startDate, endDate),
@@ -959,6 +1097,9 @@ export async function buildFullReport(
     fetchOSBreakdown(clientName, startDate, endDate),
     fetchTrafficSources(clientName, startDate, endDate),
     fetchAvgSessionDuration(clientName, startDate, endDate),
+    fetchPeakActivityHours(clientName, startDate, endDate),
+    fetchNewVsReturning(clientName, startDate, endDate),
+    fetchEngagementMetrics(clientName, startDate, endDate),
   ]);
 
   // Merge community data
@@ -1037,6 +1178,9 @@ export async function buildFullReport(
     browserBreakdown,
     osBreakdown,
     trafficSources,
+    peakActivityHours,
+    newVsReturning,
+    engagementMetrics,
     insights: generateInsights(communityPerformance, topLots, clicksByDayOfWeek, ctr),
   };
 }
