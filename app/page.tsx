@@ -90,12 +90,12 @@ const DEVICE_COLORS: Record<string, string> = {
 };
 
 const OS_COLORS: Record<string, string> = {
-  Windows: '#0078d4',
-  macOS: '#555555',
-  iOS: '#007aff',
-  Android: '#3ddc84',
-  Linux: '#fcc624',
-  'Chrome OS': '#4285f4',
+  Windows: '#6366f1',   // Indigo
+  macOS: '#8b5cf6',     // Violet
+  iOS: '#f59e0b',       // Amber
+  Android: '#10b981',   // Emerald
+  Linux: '#ef4444',     // Red
+  'Chrome OS': '#06b6d4', // Cyan
 };
 
 type TabId = 'overview' | 'details' | 'analytics';
