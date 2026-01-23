@@ -44,8 +44,13 @@ const TABS: { id: TabId; label: string; icon: string; description: string }[] = 
   { id: 'analytics', label: 'Analytics', icon: mdiChartPie, description: 'Traffic & Demographics' },
 ];
 
-const LOADING_SUBTITLES = [
-  "Fetching analytics data...", "Crunching numbers...", "Analyzing performance...", "Generating insights...", "Almost there..."
+const LOADING_MESSAGES = [
+  { text: "Fetching analytics data from your maps...", progress: 15 },
+  { text: "Syncing community performance metrics...", progress: 30 },
+  { text: "Analyzing visitor engagement patterns...", progress: 50 },
+  { text: "Processing geographic insights...", progress: 70 },
+  { text: "Generating AI-powered recommendations...", progress: 85 },
+  { text: "Finalizing your market intelligence...", progress: 95 },
 ];
 
 // =============================================================================
@@ -83,8 +88,9 @@ function exportReportToCSV(report: MarketReport) {
 // LOGO
 // =============================================================================
 
-function LotWorksLogo({ size = 'default' }: { size?: 'small' | 'default' }) {
-  const dim = size === 'small' ? { w: 24, h: 16 } : { w: 32, h: 21 };
+function LotWorksLogo({ size = 'default' }: { size?: 'small' | 'default' | 'large' }) {
+  const dims = { small: { w: 24, h: 16 }, default: { w: 32, h: 21 }, large: { w: 48, h: 32 } };
+  const dim = dims[size];
   return (
     <svg width={dim.w} height={dim.h} viewBox="0 0 52 42" fill="none">
       <path d="M13.6111 0L0 5.17937L16.8565 42H25.2778L13.6111 0Z" fill="#192A54"/>
@@ -92,6 +98,111 @@ function LotWorksLogo({ size = 'default' }: { size?: 'small' | 'default' }) {
       <path d="M21 22.5556L25.6667 39.2778L33.1009 7.53369L23.0247 11.2063L21 22.5556Z" fill="#4B5FD7"/>
       <path d="M51.4171 2.16626L44.4485 4.80303L38.8889 23.917L41.4167 32.8615L51.4171 2.16626Z" fill="#4B5FD7"/>
     </svg>
+  );
+}
+
+// =============================================================================
+// LOADING SCREEN
+// =============================================================================
+
+function LoadingScreen({ message, progress }: { message: string; progress: number }) {
+  return (
+    <div className="min-h-screen bg-[var(--md-sys-color-surface)] flex items-center justify-center p-4">
+      {/* Subtle background pattern */}
+      <div 
+        className="fixed inset-0 opacity-[0.02] pointer-events-none" 
+        style={{
+          backgroundImage: `radial-gradient(circle at 1px 1px, var(--md-sys-color-primary) 1px, transparent 0)`,
+          backgroundSize: '40px 40px',
+        }} 
+      />
+      
+      {/* Main card */}
+      <div className="relative w-full max-w-lg animate-fade-in">
+        {/* Decorative blurs */}
+        <div className="absolute -top-4 -right-4 w-24 h-24 bg-[var(--md-sys-color-primary)] opacity-5 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-[#8B5CF6] opacity-5 rounded-full blur-2xl pointer-events-none" />
+        
+        {/* Card with elevated shadow */}
+        <div className="relative bg-[var(--md-sys-color-surface-container-lowest)] rounded-[var(--md-sys-shape-corner-extra-large)] shadow-xl border border-[var(--md-sys-color-outline-variant)]/30 p-8 sm:p-10">
+          
+          {/* Logo container */}
+          <div className="flex justify-center mb-6">
+            <div className="relative">
+              {/* Soft glow behind logo */}
+              <div className="absolute inset-0 bg-[var(--md-sys-color-primary)] opacity-10 blur-2xl rounded-full scale-150" />
+              {/* Logo background */}
+              <div className="relative w-20 h-20 bg-[var(--md-sys-color-surface-container-low)] rounded-[var(--md-sys-shape-corner-large)] shadow-sm flex items-center justify-center border border-[var(--md-sys-color-outline-variant)]/20">
+                <LotWorksLogo size="large" />
+              </div>
+            </div>
+          </div>
+
+          {/* Brand label */}
+          <div className="text-center mb-2">
+            <span className="text-[var(--md-sys-color-primary)] text-[11px] font-semibold tracking-[0.3em] uppercase">
+              LotWorks Insights
+            </span>
+          </div>
+
+          {/* Headline */}
+          <h1 className="text-center text-[var(--md-sys-color-on-surface)] text-[28px] sm:text-[32px] font-semibold mb-2 leading-tight">
+            Preparing your market intelligence
+          </h1>
+
+          {/* Status message */}
+          <p className="text-center text-[var(--md-sys-color-on-surface-variant)] text-[var(--md-sys-typescale-body-medium)] mb-6 min-h-[24px]">
+            {message}
+          </p>
+
+          {/* Progress bar container */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between gap-4">
+              {/* Progress track */}
+              <div className="h-2 flex-1 bg-[var(--md-sys-color-surface-container)] rounded-full overflow-hidden">
+                {/* Animated gradient progress bar */}
+                <div 
+                  className="h-full rounded-full relative overflow-hidden"
+                  style={{ 
+                    width: `${progress}%`,
+                    background: 'linear-gradient(90deg, #4B5FD7 0%, #8B5CF6 50%, #4B5FD7 100%)',
+                    backgroundSize: '200% 100%',
+                    animation: 'shimmer 2s ease-in-out infinite',
+                    transition: 'width 0.5s ease-out',
+                  }}
+                >
+                  {/* Shimmer overlay */}
+                  <div 
+                    className="absolute inset-0"
+                    style={{
+                      background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
+                      animation: 'shimmer 1.5s ease-in-out infinite',
+                    }}
+                  />
+                </div>
+              </div>
+              
+              {/* Live sync indicator */}
+              <div className="flex items-center gap-1.5 text-[var(--md-sys-color-primary)] flex-shrink-0">
+                <div className="relative flex items-center justify-center w-4 h-4">
+                  <Icon path={mdiPulse} size={0.7} />
+                  <div className="absolute inset-0 flex items-center justify-center animate-ping opacity-40">
+                    <Icon path={mdiPulse} size={0.7} />
+                  </div>
+                </div>
+                <span className="text-[11px] font-medium whitespace-nowrap">Live sync</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer message */}
+          <div className="flex items-center justify-center gap-2 text-[var(--md-sys-color-on-surface-variant)] opacity-60">
+            <Icon path={mdiClock} size={0.625} />
+            <span className="text-[var(--md-sys-typescale-body-small)]">Holding until every insight is ready.</span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1219,18 +1330,26 @@ export default function InsightsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [loadingSubtitle, setLoadingSubtitle] = useState(LOADING_SUBTITLES[0]);
+  const [loadingState, setLoadingState] = useState({ message: LOADING_MESSAGES[0].text, progress: LOADING_MESSAGES[0].progress });
 
-  // Fetch report data
+  // Fetch report data with minimum loading time for smooth UX
   const fetchReport = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setLoadingState({ message: LOADING_MESSAGES[0].text, progress: LOADING_MESSAGES[0].progress });
 
-    let subtitleIdx = 0;
+    const minLoadTime = 2000; // Minimum 2s to show loading for polish
+    const startTime = Date.now();
+    let messageIdx = 0;
+
+    // Progress through loading messages
     const interval = setInterval(() => {
-      subtitleIdx = (subtitleIdx + 1) % LOADING_SUBTITLES.length;
-      setLoadingSubtitle(LOADING_SUBTITLES[subtitleIdx]);
-    }, 1500);
+      messageIdx = Math.min(messageIdx + 1, LOADING_MESSAGES.length - 1);
+      setLoadingState({
+        message: LOADING_MESSAGES[messageIdx].text,
+        progress: LOADING_MESSAGES[messageIdx].progress,
+      });
+    }, 600);
 
     try {
       const params = new URLSearchParams({
@@ -1238,12 +1357,29 @@ export default function InsightsPage() {
         start: formatDateToISO(startDate),
         end: formatDateToISO(endDate),
       });
+      
       const res = await fetch(`/api/reports/market?${params}`);
       if (!res.ok) throw new Error('Failed to fetch report');
       const data = await res.json();
+
+      // Ensure minimum load time has passed for smooth UX
+      const elapsed = Date.now() - startTime;
+      if (elapsed < minLoadTime) {
+        await new Promise(resolve => setTimeout(resolve, minLoadTime - elapsed));
+      }
+
+      // Final progress animation
+      setLoadingState({ message: "Ready!", progress: 100 });
+      await new Promise(resolve => setTimeout(resolve, 300));
+
       setReport(data);
       setLastUpdated(new Date());
     } catch (e) {
+      // Still wait minimum time even on error to prevent flash
+      const elapsed = Date.now() - startTime;
+      if (elapsed < minLoadTime) {
+        await new Promise(resolve => setTimeout(resolve, minLoadTime - elapsed));
+      }
       setError(e instanceof Error ? e.message : 'An error occurred');
     } finally {
       clearInterval(interval);
@@ -1255,21 +1391,7 @@ export default function InsightsPage() {
 
   // Loading state
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[var(--md-sys-color-surface)] flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative w-20 h-20 mx-auto mb-6">
-            <div className="absolute inset-0 border-4 border-[var(--md-sys-color-primary-container)] rounded-full" />
-            <div className="absolute inset-0 border-4 border-[var(--md-sys-color-primary)] rounded-full border-t-transparent animate-spin" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <LotWorksLogo size="small" />
-            </div>
-          </div>
-          <h2 className="text-[var(--md-sys-typescale-title-large)] font-semibold text-[var(--md-sys-color-on-surface)] mb-2">Loading Insights</h2>
-          <p className="text-[var(--md-sys-typescale-body-medium)] text-[var(--md-sys-color-on-surface-variant)] animate-pulse">{loadingSubtitle}</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message={loadingState.message} progress={loadingState.progress} />;
   }
 
   // Error state
