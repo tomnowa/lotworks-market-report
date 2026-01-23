@@ -36,9 +36,17 @@ interface GoogleAnalyticsData {
   geoData?: { country: string; sessions: number }[];
 }
 
-// Extended report type with Google Analytics
+// Daily trend data point
+interface DailyTrendData {
+  date: string;
+  mapLoads: number;
+  lotClicks: number;
+}
+
+// Extended report type with additional properties not in base MarketReport
 interface ExtendedMarketReport extends MarketReport {
   googleAnalytics?: GoogleAnalyticsData;
+  dailyTrend?: DailyTrendData[];
 }
 
 const ChoroplethMap = dynamic(() => import('@/components/ChoroplethMap'), {
