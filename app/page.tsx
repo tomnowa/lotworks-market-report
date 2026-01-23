@@ -39,6 +39,8 @@ import {
   mdiEmail,
   mdiCheck,
   mdiPulse,
+  mdiAccountGroup,
+  mdiAccountArrowRight,
 } from '@mdi/js';
 import {
   LineChart,
@@ -261,9 +263,11 @@ function ChartCard({
   height?: string;
 }) {
   return (
-    <div className={`bg-white rounded-2xl border border-slate-200 p-6 shadow-sm ${height}`}>
+    <div className={`bg-white rounded-2xl border border-slate-200 p-6 shadow-sm ${height} flex flex-col`}>
       <SectionHeader title={title} subtitle={subtitle} />
-      {isEmpty ? <EmptyState /> : children}
+      <div className="flex-1 min-h-0">
+        {isEmpty ? <EmptyState /> : children}
+      </div>
     </div>
   );
 }
@@ -666,15 +670,36 @@ function PeakActivityHeatmap({ data }: { data?: Record<string, Record<number, nu
     return max;
   }, [heatmapData]);
 
-  const getColor = (value: number) => {
+  // Heat color scale (cool to hot: gray -> yellow -> orange -> red)
+  const getHeatColor = (value: number) => {
     const intensity = value / maxValue;
     if (intensity < 0.1) return '#f8fafc';
-    if (intensity < 0.25) return '#e2e8f0';
-    if (intensity < 0.4) return '#cbd5e1';
-    if (intensity < 0.55) return '#94a3b8';
-    if (intensity < 0.7) return '#64748b';
-    if (intensity < 0.85) return '#6366f1';
-    return '#4b5fd7';
+    if (intensity < 0.2) return '#fef9c3'; // yellow-100
+    if (intensity < 0.35) return '#fde047'; // yellow-300
+    if (intensity < 0.5) return '#facc15'; // yellow-400
+    if (intensity < 0.65) return '#fb923c'; // orange-400
+    if (intensity < 0.8) return '#f97316'; // orange-500
+    if (intensity < 0.9) return '#ea580c'; // orange-600
+    return '#dc2626'; // red-600
+  };
+
+  // Day total for gradient intensity
+  const dayTotals = useMemo(() => {
+    const totals: Record<string, number> = {};
+    let maxDayTotal = 0;
+    days.forEach(day => {
+      const total = hours.reduce((sum, hour) => sum + (heatmapData[day]?.[hour] || 0), 0);
+      totals[day] = total;
+      if (total > maxDayTotal) maxDayTotal = total;
+    });
+    return { totals, max: maxDayTotal };
+  }, [heatmapData]);
+
+  const getDayBackground = (day: string) => {
+    const intensity = dayTotals.totals[day] / dayTotals.max;
+    // Subtle gradient from light to slightly warmer
+    const alpha = 0.03 + (intensity * 0.08);
+    return `rgba(251, 146, 60, ${alpha})`; // orange with variable alpha
   };
 
   const formatHour = (hour: number) => {
@@ -698,16 +723,19 @@ function PeakActivityHeatmap({ data }: { data?: Record<string, Record<number, nu
     return peaks.sort((a, b) => b.value - a.value).slice(0, 3);
   }, [heatmapData, maxValue]);
 
+  // Heat legend colors
+  const heatLegendColors = ['#f8fafc', '#fef9c3', '#fde047', '#facc15', '#fb923c', '#f97316', '#ea580c', '#dc2626'];
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
       <SectionHeader title="Peak Activity Hours" subtitle="When users engage with your maps" />
       
-      {/* Insight Banner */}
+      {/* Insight Banner - Standardized style */}
       {peakTimes.length > 0 && (
-        <div className="mb-4 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100">
+        <div className="mb-5 p-3 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border border-orange-100">
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Icon path={mdiPulse} size={0.9} color="#4B5FD7" />
+            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Icon path={mdiPulse} size={0.9} color="#ea580c" />
             </div>
             <div>
               <p className="text-sm font-medium text-slate-800">
@@ -721,23 +749,28 @@ function PeakActivityHeatmap({ data }: { data?: Record<string, Record<number, nu
         </div>
       )}
       
-      {/* Heatmap Grid */}
+      {/* Heatmap Grid - Responsive */}
       <div className="overflow-x-auto">
-        <div className="min-w-[550px]">
+        <div className="w-full min-w-[550px]">
           {/* Hour labels */}
-          <div className="flex mb-1 ml-10">
-            {hours.filter((_, i) => i % 4 === 0).map(hour => (
-              <div key={hour} className="text-[10px] text-slate-400 font-medium" style={{ width: '88px', textAlign: 'center' }}>
+          <div className="flex mb-2 ml-14 pr-2">
+            {hours.filter((_, i) => i % 3 === 0).map(hour => (
+              <div key={hour} className="flex-1 text-[10px] text-slate-400 font-medium text-center">
                 {formatHour(hour)}
               </div>
             ))}
           </div>
           
           {/* Grid rows */}
-          {days.map(day => (
-            <div key={day} className="flex items-center mb-1">
-              <div className="w-10 text-xs font-medium text-slate-600 pr-2">{day}</div>
-              <div className="flex gap-0.5">
+          {days.map((day, dayIndex) => (
+            <div 
+              key={day} 
+              className="flex items-center mb-1.5 rounded-lg py-1"
+              style={{ backgroundColor: getDayBackground(day) }}
+            >
+              <div className="w-12 text-xs font-semibold text-slate-700 pl-2 flex-shrink-0">{day}</div>
+              <div className="w-px h-5 bg-slate-200 mx-2 flex-shrink-0" />
+              <div className="flex gap-[3px] flex-1 pr-2">
                 {hours.map(hour => {
                   const value = heatmapData[day]?.[hour] || 0;
                   const isHovered = hoveredCell?.day === day && hoveredCell?.hour === hour;
@@ -746,10 +779,10 @@ function PeakActivityHeatmap({ data }: { data?: Record<string, Record<number, nu
                   return (
                     <div
                       key={hour}
-                      className={`w-[22px] h-6 rounded-sm cursor-pointer transition-all duration-150 ${
-                        isHovered ? 'ring-2 ring-indigo-400 ring-offset-1 scale-110 z-10' : ''
-                      } ${isPeak ? 'ring-1 ring-indigo-300' : ''}`}
-                      style={{ backgroundColor: getColor(value) }}
+                      className={`flex-1 h-7 rounded-sm cursor-pointer transition-all duration-150 ${
+                        isHovered ? 'ring-2 ring-orange-400 ring-offset-1 scale-110 z-10' : ''
+                      } ${isPeak ? 'ring-1 ring-red-400' : ''}`}
+                      style={{ backgroundColor: getHeatColor(value), minWidth: '16px' }}
                       onMouseEnter={() => setHoveredCell({ day, hour, value })}
                       onMouseLeave={() => setHoveredCell(null)}
                     />
@@ -763,25 +796,25 @@ function PeakActivityHeatmap({ data }: { data?: Record<string, Record<number, nu
       
       {/* Tooltip */}
       {hoveredCell && (
-        <div className="mt-3 p-2 bg-slate-800 rounded-lg text-white text-sm inline-flex items-center gap-2">
+        <div className="mt-4 p-2.5 bg-slate-800 rounded-lg text-white text-sm inline-flex items-center gap-2">
           <span className="font-semibold">{hoveredCell.day} {formatHour(hoveredCell.hour)}</span>
           <span className="text-slate-400">•</span>
           <span>{hoveredCell.value} sessions</span>
-          <span className={hoveredCell.value >= maxValue * 0.7 ? 'text-green-400' : 'text-slate-400'}>
+          <span className={hoveredCell.value >= maxValue * 0.7 ? 'text-orange-400' : 'text-slate-400'}>
             ({Math.round((hoveredCell.value / maxValue) * 100)}% of peak)
           </span>
         </div>
       )}
       
-      {/* Legend */}
-      <div className="mt-4 flex items-center justify-center gap-3 text-xs text-slate-600">
-        <span className="font-medium">Less</span>
+      {/* Heat Legend */}
+      <div className="mt-5 flex items-center justify-center gap-3 text-xs text-slate-600">
+        <span className="font-medium">Cool</span>
         <div className="flex gap-0.5">
-          {['#f8fafc', '#e2e8f0', '#cbd5e1', '#94a3b8', '#64748b', '#4b5fd7'].map((color, i) => (
-            <div key={i} className="w-4 h-4 rounded-sm" style={{ backgroundColor: color }} />
+          {heatLegendColors.map((color, i) => (
+            <div key={i} className="w-5 h-5 rounded-sm" style={{ backgroundColor: color }} />
           ))}
         </div>
-        <span className="font-medium">More</span>
+        <span className="font-medium">Hot</span>
       </div>
     </div>
   );
@@ -804,14 +837,41 @@ function NewVsReturningCard({ data }: { data?: { new: number; returning: number;
   const newPct = Math.round((visitorData.new / total) * 100);
   const retPct = 100 - newPct;
   
-  // Determine insight
+  // Determine insight with icon
   const getInsight = () => {
     if (newPct > 70) {
-      return { type: 'info' as const, text: 'Strong acquisition: Most visitors are new. Focus on conversion optimization.' };
+      return { 
+        type: 'info' as const, 
+        icon: mdiAccountArrowRight,
+        title: 'Strong Acquisition',
+        text: 'Most visitors are new. Focus on conversion optimization.',
+        gradient: 'from-blue-50 to-indigo-50',
+        border: 'border-blue-100',
+        iconBg: 'bg-blue-100',
+        iconColor: '#3b82f6'
+      };
     } else if (newPct < 30) {
-      return { type: 'warning' as const, text: 'Nurture-heavy: Many returning visitors but few new ones. Boost marketing reach.' };
+      return { 
+        type: 'warning' as const, 
+        icon: mdiAlert,
+        title: 'Nurture-Heavy',
+        text: 'Many returning visitors but few new ones. Boost marketing reach.',
+        gradient: 'from-amber-50 to-orange-50',
+        border: 'border-amber-100',
+        iconBg: 'bg-amber-100',
+        iconColor: '#f59e0b'
+      };
     } else {
-      return { type: 'tip' as const, text: 'Balanced funnel: Good mix of new acquisition and returning engagement.' };
+      return { 
+        type: 'tip' as const, 
+        icon: mdiAccountGroup,
+        title: 'Balanced Funnel',
+        text: 'Good mix of new acquisition and returning engagement.',
+        gradient: 'from-emerald-50 to-teal-50',
+        border: 'border-emerald-100',
+        iconBg: 'bg-emerald-100',
+        iconColor: '#10b981'
+      };
     }
   };
   
@@ -820,6 +880,19 @@ function NewVsReturningCard({ data }: { data?: { new: number; returning: number;
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
       <SectionHeader title="New vs. Returning Visitors" subtitle="Visitor composition this period" />
+      
+      {/* Insight Banner - Standardized style */}
+      <div className={`mb-5 p-3 bg-gradient-to-r ${insight.gradient} rounded-xl border ${insight.border}`}>
+        <div className="flex items-start gap-3">
+          <div className={`w-8 h-8 ${insight.iconBg} rounded-lg flex items-center justify-center flex-shrink-0`}>
+            <Icon path={insight.icon} size={0.9} color={insight.iconColor} />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-slate-800">{insight.title}</p>
+            <p className="text-xs text-slate-600 mt-0.5">{insight.text}</p>
+          </div>
+        </div>
+      </div>
       
       <div className="flex items-center gap-6">
         {/* Donut Chart */}
@@ -888,22 +961,6 @@ function NewVsReturningCard({ data }: { data?: { new: number; returning: number;
             </div>
           </div>
         </div>
-      </div>
-      
-      {/* Insight */}
-      <div className={`mt-4 p-3 rounded-lg border ${
-        insight.type === 'tip' ? 'bg-emerald-50 border-emerald-100' : 
-        insight.type === 'warning' ? 'bg-amber-50 border-amber-100' : 
-        'bg-blue-50 border-blue-100'
-      }`}>
-        <p className={`text-sm ${
-          insight.type === 'tip' ? 'text-emerald-800' : 
-          insight.type === 'warning' ? 'text-amber-800' : 
-          'text-blue-800'
-        }`}>
-          <span className="font-semibold">{insight.type === 'tip' ? '✓' : insight.type === 'warning' ? '⚠' : 'ℹ'}</span>{' '}
-          {insight.text}
-        </p>
       </div>
     </div>
   );
@@ -1829,13 +1886,13 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
         <ChartCard
           title="Top Cities"
           subtitle={`${displayCities.length} cities with activity`}
-          height={displayCities.length > CITIES_PER_PAGE ? "h-[450px]" : "h-[400px]"}
+          height={displayCities.length > CITIES_PER_PAGE ? "h-[500px]" : "h-[420px]"}
         >
           {displayCities.length === 0 ? (
             <EmptyState message="No city data available" />
           ) : (
             <div className="flex flex-col h-full">
-              <div className={displayCities.length > CITIES_PER_PAGE ? "flex-1" : "h-full"}>
+              <div className="flex-1 min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={displayCities.slice(citiesPage * CITIES_PER_PAGE, (citiesPage + 1) * CITIES_PER_PAGE)}
@@ -1851,7 +1908,7 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
                 </ResponsiveContainer>
               </div>
               {displayCities.length > CITIES_PER_PAGE && (
-                <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-center gap-2 pt-4 border-t border-slate-100 flex-shrink-0">
                   <button onClick={() => setCitiesPage(p => Math.max(0, p - 1))} disabled={citiesPage === 0} className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                     <Icon path={mdiChevronLeft} size={1} />
                   </button>
@@ -1871,21 +1928,23 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
           title="Lot Clicks by Day"
           subtitle="When users engage most"
           isEmpty={clicksByDay.length === 0}
-          height={displayCities.length > CITIES_PER_PAGE ? "h-[450px]" : "h-[400px]"}
+          height={displayCities.length > CITIES_PER_PAGE ? "h-[500px]" : "h-[420px]"}
         >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={clicksByDayWithPercent}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-              <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} tickFormatter={v => v?.slice(0, 3)} />
-              <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
-              <Tooltip content={<ChartTooltipWithPercent showPercent />} />
-              <Bar dataKey="clicks" name="Clicks" radius={[4, 4, 0, 0]}>
-                {clicksByDayWithPercent.map((entry, i) => (
-                  <Cell key={i} fill={getHeatmapColor(entry.clicks, maxDayClicks, 'green')} stroke="#10b981" strokeWidth={1} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="h-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={clicksByDayWithPercent}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} tickFormatter={v => v?.slice(0, 3)} />
+                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
+                <Tooltip content={<ChartTooltipWithPercent showPercent />} />
+                <Bar dataKey="clicks" name="Clicks" radius={[4, 4, 0, 0]}>
+                  {clicksByDayWithPercent.map((entry, i) => (
+                    <Cell key={i} fill={getHeatmapColor(entry.clicks, maxDayClicks, 'green')} stroke="#10b981" strokeWidth={1} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </ChartCard>
       </div>
 
@@ -1944,9 +2003,9 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
 
       {/* Row 4: Device + Engagement Quality */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Device Category" isEmpty={devices.length === 0} height="h-72">
-          <div className="flex items-center h-full">
-            <div className="w-1/2 h-full">
+        <ChartCard title="Device Category" isEmpty={devices.length === 0} height="h-auto min-h-[320px]">
+          <div className="flex items-center gap-4 py-2">
+            <div className="w-2/5 h-44 flex-shrink-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={devices} dataKey="users" nameKey="device" cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={2}>
@@ -1958,20 +2017,20 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div className="w-1/2 space-y-3">
+            <div className="flex-1 space-y-3">
               {devices.map((d, i) => (
                 <div key={i} className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${DEVICE_COLORS[d.device] || CHART_COLORS[i]}15` }}>
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${DEVICE_COLORS[d.device] || CHART_COLORS[i]}15` }}>
                     {d.device === 'Mobile' && <Icon path={mdiCellphone} size={1.25} color="#3b82f6" />}
                     {d.device === 'Desktop' && <Icon path={mdiMonitor} size={1.25} color="#ef4444" />}
                     {d.device === 'Tablet' && <Icon path={mdiTablet} size={1.25} color="#f59e0b" />}
                     {d.device === 'Smart tv' && <Icon path={mdiTelevision} size={1.25} color="#8b5cf6" />}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="font-medium text-slate-800">{d.device === 'Smart tv' ? 'Smart TV' : d.device}</div>
                     <div className="text-sm text-slate-500">{d.users.toLocaleString()} users</div>
                   </div>
-                  <div className="text-xl font-bold text-slate-800">{d.percentage}%</div>
+                  <div className="text-xl font-bold text-slate-800 flex-shrink-0">{d.percentage}%</div>
                 </div>
               ))}
             </div>
