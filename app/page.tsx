@@ -1962,9 +1962,10 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
         <EngagementQualityCard data={engagementData} />
       </div>
       {/* Row 2: Peak Activity + Device/OS Overview */}
-      {/* Left column: Peak Activity Hours */}
-      <PeakActivityHeatmap data={peakActivityData} />
+      
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left column: Peak Activity Hours */}
+        <PeakActivityHeatmap data={peakActivityData} />
         {/* Right column: Device Category + Operating System stacked */}
         <div className="flex flex-col gap-6">
           {/* Device Category */}
