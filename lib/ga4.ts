@@ -85,86 +85,102 @@ export async function fetchPeakActivityHours(
   clientName: string,
   startDate: string,
   endDate: string
-): Promise<Record<string, Record<number, number>>> {
-  const client = getClient();
+): Promise<Record<string, Record<number, number>> | undefined> {
+  try {
+    const client = getClient();
 
-  const [response] = await client.runReport({
-    property: `properties/${PROPERTY_ID}`,
-    dateRanges: [{ startDate, endDate }],
-    dimensions: [{ name: 'dayOfWeek' }, { name: 'hourOfDay' }],
-    metrics: [{ name: 'sessions' }],
-    dimensionFilter: {
-      filter: {
-        fieldName: 'customEvent:c_client',
-        stringFilter: { matchType: 'EXACT', value: clientName },
+    const [response] = await client.runReport({
+      property: `properties/${PROPERTY_ID}`,
+      dateRanges: [{ startDate, endDate }],
+      dimensions: [{ name: 'dayOfWeek' }, { name: 'hourOfDay' }],
+      metrics: [{ name: 'sessions' }],
+      dimensionFilter: {
+        filter: {
+          fieldName: 'customEvent:c_client',
+          stringFilter: { matchType: 'EXACT', value: clientName },
+        },
       },
-    },
-    orderBys: [
-      { dimension: { dimensionName: 'dayOfWeek' }, desc: false },
-      { dimension: { dimensionName: 'hourOfDay' }, desc: false },
-    ],
-  });
+      orderBys: [
+        { dimension: { dimensionName: 'dayOfWeek' }, desc: false },
+        { dimension: { dimensionName: 'hourOfDay' }, desc: false },
+      ],
+    });
 
-  const activity: Record<string, Record<number, number>> = {};
+    const activity: Record<string, Record<number, number>> = {};
 
-  for (const row of response.rows || []) {
-    const dayValue = row.dimensionValues?.[0]?.value;
-    const hourValue = row.dimensionValues?.[1]?.value;
-    const sessions = parseInt(row.metricValues?.[0]?.value || '0', 10);
+    for (const row of response.rows || []) {
+      const dayValue = row.dimensionValues?.[0]?.value;
+      const hourValue = row.dimensionValues?.[1]?.value;
+      const sessions = parseInt(row.metricValues?.[0]?.value || '0', 10);
 
-    const dayIndex = dayValue ? Number.parseInt(dayValue, 10) : NaN;
-    const hourIndex = hourValue ? Number.parseInt(hourValue, 10) : NaN;
+      const dayIndex = dayValue ? Number.parseInt(dayValue, 10) : NaN;
+      const hourIndex = hourValue ? Number.parseInt(hourValue, 10) : NaN;
 
-    if (Number.isNaN(dayIndex) || Number.isNaN(hourIndex)) {
-      continue;
+      if (Number.isNaN(dayIndex) || Number.isNaN(hourIndex)) {
+        continue;
+      }
+
+      const dayLabel = normalizeDayLabel(dayIndex);
+      if (!activity[dayLabel]) {
+        activity[dayLabel] = {};
+      }
+
+      activity[dayLabel][hourIndex] = sessions;
     }
 
-    const dayLabel = normalizeDayLabel(dayIndex);
-    if (!activity[dayLabel]) {
-      activity[dayLabel] = {};
-    }
-
-    activity[dayLabel][hourIndex] = sessions;
+    // Return undefined if no data (frontend will use sample data)
+    return Object.keys(activity).length > 0 ? activity : undefined;
+  } catch (error) {
+    console.error('Failed to fetch peak activity hours:', error);
+    return undefined;
   }
-
-  return activity;
 }
 
 export async function fetchNewVsReturning(
   clientName: string,
   startDate: string,
   endDate: string
-): Promise<{ new: number; returning: number }> {
-  const client = getClient();
+): Promise<{ new: number; returning: number } | undefined> {
+  try {
+    const client = getClient();
 
-  const [response] = await client.runReport({
-    property: `properties/${PROPERTY_ID}`,
-    dateRanges: [{ startDate, endDate }],
-    dimensions: [{ name: 'newVsReturning' }],
-    metrics: [{ name: 'totalUsers' }],
-    dimensionFilter: {
-      filter: {
-        fieldName: 'customEvent:c_client',
-        stringFilter: { matchType: 'EXACT', value: clientName },
+    const [response] = await client.runReport({
+      property: `properties/${PROPERTY_ID}`,
+      dateRanges: [{ startDate, endDate }],
+      dimensions: [{ name: 'newVsReturning' }],
+      metrics: [{ name: 'totalUsers' }],
+      dimensionFilter: {
+        filter: {
+          fieldName: 'customEvent:c_client',
+          stringFilter: { matchType: 'EXACT', value: clientName },
+        },
       },
-    },
-  });
+    });
 
-  let newUsers = 0;
-  let returningUsers = 0;
+    let newUsers = 0;
+    let returningUsers = 0;
 
-  for (const row of response.rows || []) {
-    const segment = row.dimensionValues?.[0]?.value?.toLowerCase() ?? '';
-    const users = parseInt(row.metricValues?.[0]?.value || '0', 10);
+    for (const row of response.rows || []) {
+      const segment = row.dimensionValues?.[0]?.value?.toLowerCase() ?? '';
+      const users = parseInt(row.metricValues?.[0]?.value || '0', 10);
 
-    if (segment.includes('new')) {
-      newUsers = users;
-    } else if (segment.includes('return')) {
-      returningUsers = users;
+      if (segment.includes('new')) {
+        newUsers = users;
+      } else if (segment.includes('return')) {
+        returningUsers = users;
+      }
     }
-  }
 
-  return { new: newUsers, returning: returningUsers };
+    // Return undefined if no data (frontend will use sample data)
+    if (newUsers === 0 && returningUsers === 0) {
+      return undefined;
+    }
+
+    return { new: newUsers, returning: returningUsers };
+  } catch (error) {
+    console.error('Failed to fetch new vs returning:', error);
+    return undefined;
+  }
 }
 
 export async function fetchEngagementMetrics(
@@ -176,38 +192,51 @@ export async function fetchEngagementMetrics(
   avgDuration: string;
   bounceRate: number;
   sessionsPerUser: number;
-}> {
-  const client = getClient();
+} | undefined> {
+  try {
+    const client = getClient();
 
-  const [response] = await client.runReport({
-    property: `properties/${PROPERTY_ID}`,
-    dateRanges: [{ startDate, endDate }],
-    metrics: [
-      { name: 'engagementRate' },
-      { name: 'averageSessionDuration' },
-      { name: 'bounceRate' },
-      { name: 'sessionsPerUser' },
-    ],
-    dimensionFilter: {
-      filter: {
-        fieldName: 'customEvent:c_client',
-        stringFilter: { matchType: 'EXACT', value: clientName },
+    const [response] = await client.runReport({
+      property: `properties/${PROPERTY_ID}`,
+      dateRanges: [{ startDate, endDate }],
+      metrics: [
+        { name: 'engagementRate' },
+        { name: 'averageSessionDuration' },
+        { name: 'bounceRate' },
+        { name: 'sessionsPerUser' },
+      ],
+      dimensionFilter: {
+        filter: {
+          fieldName: 'customEvent:c_client',
+          stringFilter: { matchType: 'EXACT', value: clientName },
+        },
       },
-    },
-  });
+    });
 
-  const row = response.rows?.[0];
-  const engagementRate = Number.parseFloat(row?.metricValues?.[0]?.value || '0');
-  const avgDurationSeconds = Number.parseFloat(row?.metricValues?.[1]?.value || '0');
-  const bounceRate = Number.parseFloat(row?.metricValues?.[2]?.value || '0');
-  const sessionsPerUser = Number.parseFloat(row?.metricValues?.[3]?.value || '0');
+    const row = response.rows?.[0];
+    if (!row) {
+      return undefined;
+    }
 
-  return {
-    engagementRate,
-    avgDuration: formatDuration(avgDurationSeconds),
-    bounceRate,
-    sessionsPerUser,
-  };
+    const engagementRateRaw = Number.parseFloat(row.metricValues?.[0]?.value || '0');
+    const avgDurationSeconds = Number.parseFloat(row.metricValues?.[1]?.value || '0');
+    const bounceRateRaw = Number.parseFloat(row.metricValues?.[2]?.value || '0');
+    const sessionsPerUser = Number.parseFloat(row.metricValues?.[3]?.value || '0');
+
+    // GA4 returns rates as decimals (0.64), convert to percentages (64)
+    const engagementRate = Math.round(engagementRateRaw * 100);
+    const bounceRate = Math.round(bounceRateRaw * 100);
+
+    return {
+      engagementRate,
+      avgDuration: formatDuration(avgDurationSeconds),
+      bounceRate,
+      sessionsPerUser: Math.round(sessionsPerUser * 10) / 10, // Round to 1 decimal
+    };
+  } catch (error) {
+    console.error('Failed to fetch engagement metrics:', error);
+    return undefined;
+  }
 }
 
 export async function fetchMapLoads(
