@@ -2449,6 +2449,30 @@ export default function InsightsPage() {
             </div>
           </div>
         </div>
+        <style jsx>{`
+          .loading-bar {
+            animation: loading-bar 2.6s ease-in-out infinite;
+          }
+
+          @keyframes loading-bar {
+            0% {
+              width: 0%;
+            }
+            55% {
+              width: 85%;
+            }
+            100% {
+              width: 100%;
+            }
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            .loading-bar {
+              animation: none;
+              width: 65%;
+            }
+          }
+        `}</style>
       </div>
     );
   }
