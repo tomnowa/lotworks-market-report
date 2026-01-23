@@ -89,11 +89,12 @@ export async function fetchPeakActivityHours(
   try {
     const client = getClient();
 
+    // Use activeUsers instead of sessions - works better with event-scoped custom parameter filters
     const [response] = await client.runReport({
       property: `properties/${PROPERTY_ID}`,
       dateRanges: [{ startDate, endDate }],
-      dimensions: [{ name: 'dayOfWeek' }, { name: 'hourOfDay' }],
-      metrics: [{ name: 'sessions' }],
+      dimensions: [{ name: 'dayOfWeek' }, { name: 'hour' }],
+      metrics: [{ name: 'activeUsers' }],
       dimensionFilter: {
         filter: {
           fieldName: 'customEvent:c_client',
@@ -102,7 +103,7 @@ export async function fetchPeakActivityHours(
       },
       orderBys: [
         { dimension: { dimensionName: 'dayOfWeek' }, desc: false },
-        { dimension: { dimensionName: 'hourOfDay' }, desc: false },
+        { dimension: { dimensionName: 'hour' }, desc: false },
       ],
     });
 
@@ -111,7 +112,7 @@ export async function fetchPeakActivityHours(
     for (const row of response.rows || []) {
       const dayValue = row.dimensionValues?.[0]?.value;
       const hourValue = row.dimensionValues?.[1]?.value;
-      const sessions = parseInt(row.metricValues?.[0]?.value || '0', 10);
+      const users = parseInt(row.metricValues?.[0]?.value || '0', 10);
 
       const dayIndex = dayValue ? Number.parseInt(dayValue, 10) : NaN;
       const hourIndex = hourValue ? Number.parseInt(hourValue, 10) : NaN;
@@ -125,7 +126,7 @@ export async function fetchPeakActivityHours(
         activity[dayLabel] = {};
       }
 
-      activity[dayLabel][hourIndex] = sessions;
+      activity[dayLabel][hourIndex] = users;
     }
 
     // Return undefined if no data (frontend will use sample data)

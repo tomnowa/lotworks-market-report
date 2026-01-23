@@ -779,7 +779,7 @@ function PeakActivityHeatmap({ data }: { data?: Record<string, Record<number, nu
               <div className="flex items-center gap-2">
                 <span className="font-semibold">{hoveredCell.day} {formatHour(hoveredCell.hour)}</span>
                 <span className="text-slate-400">•</span>
-                <span>{hoveredCell.value} sessions</span>
+                <span>{hoveredCell.value} users</span>
                 <span className={hoveredCell.value >= maxValue * 0.7 ? 'text-violet-400' : 'text-slate-400'}>
                   ({Math.round((hoveredCell.value / maxValue) * 100)}%)
                 </span>
