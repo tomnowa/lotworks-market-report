@@ -117,6 +117,19 @@ export interface MarketReport {
   osBreakdown: OperatingSystemData[];
   trafficSources: TrafficSource[];
   insights: Insight[];
+  peakActivityHours?: Record<string, Record<number, number>>;
+  newVsReturning?: {
+    new: number;
+    returning: number;
+    newTrend?: number;
+    returningTrend?: number;
+  };
+  engagementMetrics?: {
+    engagementRate: number;
+    avgDuration: string;
+    bounceRate: number;
+    sessionsPerUser: number;
+  };
 }
 
 export interface ClientOption {
