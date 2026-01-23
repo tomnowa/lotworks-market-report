@@ -1956,9 +1956,16 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
 
   return (
     <div className="space-y-6">
-      {/* Row 1: Device/OS Overview + Peak Activity */}
+      {/* Row 1: Visitor Engagement */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left column: Device Category + Operating System stacked */}
+        <NewVsReturningCard data={newVsReturningData} />
+        <EngagementQualityCard data={engagementData} />
+      </div>
+      {/* Row 2: Peak Activity + Device/OS Overview */}
+      {/* Left column: Peak Activity Hours */}
+      <PeakActivityHeatmap data={peakActivityData} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Right column: Device Category + Operating System stacked */}
         <div className="flex flex-col gap-6">
           {/* Device Category */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
@@ -1997,8 +2004,7 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
                 </div>
               </div>
             )}
-          </div>
-          
+          </div>          
           {/* Operating System */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
             <SectionHeader title="Operating System" subtitle="Platform distribution" />
@@ -2036,13 +2042,11 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
               </div>
             )}
           </div>
-        </div>
+        </div>      
         
-        {/* Right column: Peak Activity Hours */}
-        <PeakActivityHeatmap data={peakActivityData} />
       </div>
 
-      {/* Row 2: Top Cities + Lot Clicks by Day */}
+      {/* Row 3: Top Cities + Lot Clicks by Day */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartCard
           title="Top Cities"
@@ -2109,7 +2113,7 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
         </ChartCard>
       </div>
 
-      {/* Row 3: Country Map + Traffic Sources */}
+      {/* Row 4: Country Map + Traffic Sources */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col">
           <SectionHeader title="Active Users by Country" subtitle={`${countries.length} countries tracked`} />
@@ -2162,11 +2166,6 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
         </div>
       </div>
 
-      {/* Row 4: Visitor Engagement */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <NewVsReturningCard data={newVsReturningData} />
-        <EngagementQualityCard data={engagementData} />
-      </div>
     </div>
   );
 }
