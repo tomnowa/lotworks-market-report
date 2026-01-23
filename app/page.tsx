@@ -20,6 +20,27 @@ import type { MarketReport, CommunityPerformance, TopLot } from '@/types';
 import { MD3 } from '@/lib/theme';
 import dynamic from 'next/dynamic';
 
+// Google Analytics data type (extends MarketReport)
+interface GoogleAnalyticsData {
+  engagementByHour?: { hour: number; sessions: number }[];
+  newVsReturning?: { newUsers: number; returningUsers: number };
+  engagementRate?: number;
+  avgSessionDuration?: string;
+  pagesPerSession?: number;
+  bounceRate?: number;
+  totalSessions?: number;
+  uniqueUsers?: number;
+  deviceBreakdown?: Record<string, number>;
+  operatingSystem?: Record<string, number>;
+  trafficSources?: { source: string; sessions: number; percentage: number }[];
+  geoData?: { country: string; sessions: number }[];
+}
+
+// Extended report type with Google Analytics
+interface ExtendedMarketReport extends MarketReport {
+  googleAnalytics?: GoogleAnalyticsData;
+}
+
 const ChoroplethMap = dynamic(() => import('@/components/ChoroplethMap'), {
   ssr: false,
   loading: () => (
@@ -407,7 +428,7 @@ function EmailSchedulerModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 // PEAK ACTIVITY HEATMAP
 // =============================================================================
 
-function PeakActivityHeatmap({ analytics }: { analytics: MarketReport['googleAnalytics'] }) {
+function PeakActivityHeatmap({ analytics }: { analytics: GoogleAnalyticsData }) {
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   
@@ -505,7 +526,7 @@ function PeakActivityHeatmap({ analytics }: { analytics: MarketReport['googleAna
 // NEW VS RETURNING CARD
 // =============================================================================
 
-function NewVsReturningCard({ analytics }: { analytics: MarketReport['googleAnalytics'] }) {
+function NewVsReturningCard({ analytics }: { analytics: GoogleAnalyticsData }) {
   const data = useMemo(() => {
     if (analytics?.newVsReturning) {
       const total = analytics.newVsReturning.newUsers + analytics.newVsReturning.returningUsers;
@@ -572,7 +593,7 @@ function NewVsReturningCard({ analytics }: { analytics: MarketReport['googleAnal
 // ENGAGEMENT QUALITY CARD
 // =============================================================================
 
-function EngagementQualityCard({ analytics }: { analytics: MarketReport['googleAnalytics'] }) {
+function EngagementQualityCard({ analytics }: { analytics: GoogleAnalyticsData }) {
   const engagementRate = analytics?.engagementRate ?? 67;
   const avgDuration = analytics?.avgSessionDuration ?? '2m 34s';
   const pagesPerSession = analytics?.pagesPerSession ?? 3.2;
@@ -628,7 +649,7 @@ function EngagementQualityCard({ analytics }: { analytics: MarketReport['googleA
 
 interface AIInsight { type: 'hot'|'tip'|'warning'|'info'; title: string; description: string; }
 
-function generateAIInsights(report: MarketReport | null): AIInsight[] {
+function generateAIInsights(report: ExtendedMarketReport | null): AIInsight[] {
   if (!report) return [];
   const insights: AIInsight[] = [];
   const communities = report.communityPerformance || [];
@@ -940,7 +961,7 @@ function MobileNav({ activeTab, onTabChange, isOpen, onClose }: { activeTab: Tab
 // OVERVIEW CONTENT
 // =============================================================================
 
-function OverviewContent({ report }: { report: MarketReport | null }) {
+function OverviewContent({ report }: { report: ExtendedMarketReport | null }) {
   const insights = useMemo(() => generateAIInsights(report), [report]);
   const summary = report?.summary;
   const communities = report?.communityPerformance || [];
@@ -1057,7 +1078,7 @@ function OverviewContent({ report }: { report: MarketReport | null }) {
 // MAP DETAILS CONTENT
 // =============================================================================
 
-function MapDetailsContent({ report, client, startDate, endDate }: { report: MarketReport | null; client: string; startDate: string; endDate: string }) {
+function MapDetailsContent({ report, client, startDate, endDate }: { report: ExtendedMarketReport | null; client: string; startDate: string; endDate: string }) {
   const [selectedCommunity, setSelectedCommunity] = useState<CommunityPerformance | null>(null);
   const [communityLots, setCommunityLots] = useState<TopLot[]>([]);
   const [loadingLots, setLoadingLots] = useState(false);
@@ -1158,7 +1179,7 @@ function MapDetailsContent({ report, client, startDate, endDate }: { report: Mar
 // ANALYTICS CONTENT
 // =============================================================================
 
-function AnalyticsContent({ report }: { report: MarketReport | null }) {
+function AnalyticsContent({ report }: { report: ExtendedMarketReport | null }) {
   const analytics = report?.googleAnalytics;
 
   const deviceData = useMemo(() => {
@@ -1326,7 +1347,7 @@ export default function InsightsPage() {
   const [startDate, setStartDate] = useState(() => new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
   const [endDate, setEndDate] = useState(() => new Date());
 
-  const [report, setReport] = useState<MarketReport | null>(null);
+  const [report, setReport] = useState<ExtendedMarketReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
