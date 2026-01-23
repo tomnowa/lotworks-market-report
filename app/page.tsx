@@ -2274,10 +2274,11 @@ export default function InsightsPage() {
   const [clients, setClients] = useState<string[]>([DEFAULT_CLIENT]);
   const [selectedClient, setSelectedClient] = useState(DEFAULT_CLIENT);
   const [report, setReport] = useState<MarketReport | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const latestRequestRef = useRef(0);
   
   // Date range (default last 30 days)
   const [endDate, setEndDate] = useState(() => new Date());
@@ -2291,12 +2292,12 @@ export default function InsightsPage() {
   const [currentSubtitleIndex, setCurrentSubtitleIndex] = useState(0);
   
   useEffect(() => {
-    if (!loading) return;
+    if (!isInitialLoading) return;
     const interval = setInterval(() => {
       setCurrentSubtitleIndex((prev) => (prev + 1) % LOADING_SUBTITLES.length);
     }, 2000);
     return () => clearInterval(interval);
-  }, [loading]);
+  }, [isInitialLoading]);
   
   // UI State
   const [activeTab, setActiveTab] = useState<TabId>('overview');
@@ -2320,11 +2321,13 @@ export default function InsightsPage() {
 
   // Fetch report function
   const fetchReport = useCallback(async (showRefreshIndicator = false) => {
+    const requestId = latestRequestRef.current + 1;
+    latestRequestRef.current = requestId;
     try {
       if (showRefreshIndicator) {
         setRefreshing(true);
       } else {
-        setLoading(true);
+        setIsInitialLoading(true);
       }
       setError(null);
       
@@ -2341,13 +2344,16 @@ export default function InsightsPage() {
       }
       
       const data = await response.json();
+      if (latestRequestRef.current !== requestId) return;
       setReport(data);
       setLastUpdated(new Date());
     } catch (err) {
+      if (latestRequestRef.current !== requestId) return;
       console.error('Fetch error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
-      setLoading(false);
+      if (latestRequestRef.current !== requestId) return;
+      setIsInitialLoading(false);
       setRefreshing(false);
     }
   }, [selectedClient, startDate, endDate]);
@@ -2374,13 +2380,74 @@ export default function InsightsPage() {
   };
 
   // Loading state
-  if (loading && !report) {
+  if (isInitialLoading || (!report && !error)) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-4" style={{ borderColor: '#4B5FD7', borderTopColor: 'transparent' }} />
-          <p className="text-slate-600 font-medium">Loading LotWorks Insights...</p>
-          <p className="text-slate-400 text-sm mt-1">{LOADING_SUBTITLES[currentSubtitleIndex]}</p>
+      <div
+        className="min-h-screen flex items-center justify-center bg-slate-950 text-white relative overflow-hidden"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <div className="absolute inset-0">
+          <div className="absolute -top-32 right-12 h-80 w-80 rounded-full bg-indigo-500/15 blur-[140px]" />
+          <div className="absolute bottom-0 left-10 h-64 w-64 rounded-full bg-sky-400/15 blur-[140px]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(148,163,255,0.14),_transparent_55%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom,_rgba(56,189,248,0.12),_transparent_60%)]" />
+        </div>
+        <div className="relative z-10 w-full max-w-3xl px-6">
+          <div className="bg-slate-900/70 border border-white/10 rounded-[28px] p-8 shadow-[0_32px_80px_-40px_rgba(15,23,42,0.9)] backdrop-blur">
+            <div className="flex flex-col items-center text-center gap-6">
+              <span className="sr-only">Loading LotWorks Insights. Please wait.</span>
+              <div className="relative">
+                <div className="absolute inset-0 rounded-[22px] bg-indigo-500/25 blur-2xl animate-pulse motion-reduce:animate-none" />
+                <div className="relative flex items-center justify-center w-20 h-20 rounded-[22px] bg-white/90 shadow-[0_16px_30px_-16px_rgba(79,70,229,0.7)]">
+                  <svg width="52" height="42" viewBox="0 0 52 42" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-12 h-12">
+                    <path d="M13.6111 0L0 5.17937L16.8565 42H25.2778L13.6111 0Z" fill="#192A54"/>
+                    <path d="M30.5278 23.5278L33.8333 9.52778L40.8333 35.1726H35.7377L30.5278 23.5278Z" fill="#192A54"/>
+                    <path d="M21 22.5556L25.6667 39.2778L33.1009 7.53369L23.0247 11.2063L21 22.5556Z" fill="#4B5FD7"/>
+                    <path d="M51.4171 2.16626L44.4485 4.80303L38.8889 23.917L41.4167 32.8615L51.4171 2.16626Z" fill="#4B5FD7"/>
+                  </svg>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.45em] text-indigo-200/70">LotWorks Insights</p>
+                <h1 className="text-3xl md:text-4xl font-semibold mt-3 text-white/95">Preparing your market intelligence</h1>
+                <p className="text-indigo-100/70 mt-3 text-sm md:text-base">{LOADING_SUBTITLES[currentSubtitleIndex]}</p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-3 text-xs text-indigo-100/70" aria-hidden="true">
+                <span className="px-3 py-1 rounded-full bg-indigo-400/15 border border-indigo-200/20">AI-ready insights</span>
+                <span className="px-3 py-1 rounded-full bg-sky-400/10 border border-sky-200/20">Verified lot activity</span>
+                <span className="px-3 py-1 rounded-full bg-white/10 border border-white/10">Live map intelligence</span>
+              </div>
+              <div className="w-full">
+                <div className="flex items-center gap-4">
+                  <div className="h-2.5 flex-1 rounded-full bg-white/10 overflow-hidden">
+                    <div className="h-full w-1/2 bg-gradient-to-r from-sky-400 via-indigo-400 to-violet-400 animate-pulse motion-reduce:animate-none" />
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-indigo-100/80">
+                    <Icon path={mdiPulse} size={0.9} color="#a5b4fc" />
+                    Live sync
+                  </div>
+                </div>
+                <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+                  {[
+                    { label: 'Communities analyzed', value: '48+' },
+                    { label: 'Engagement signals', value: '12k+' },
+                    { label: 'Trend vectors', value: 'Realtime' },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-[20px] border border-white/10 bg-white/5 p-4">
+                      <div className="text-lg font-semibold text-white/90">{item.value}</div>
+                      <div className="text-xs text-indigo-100/70 mt-1">{item.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-indigo-100/70">
+                <Icon path={mdiClock} size={0.8} color="#c7d2fe" />
+                Holding until every insight is ready.
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -2455,7 +2522,7 @@ export default function InsightsPage() {
               clients={clients}
               selected={selectedClient}
               onChange={setSelectedClient}
-              disabled={loading || refreshing}
+              disabled={isInitialLoading || refreshing}
             />
           </div>
           
@@ -2464,7 +2531,7 @@ export default function InsightsPage() {
               startDate={startDate}
               endDate={endDate}
               onChange={handleDateChange}
-              disabled={loading || refreshing}
+              disabled={isInitialLoading || refreshing}
             />
             
             <button
