@@ -295,15 +295,10 @@ function LoadingScreen({ message, progress }: { message: string; progress: numbe
 
           {/* Brand label */}
           <div className="text-center mb-2">
-            <span className="text-[#4B5FD7] text-[11px] font-semibold tracking-[0.3em] uppercase">
+            <span className="text-[#4B5FD7] text-[24px] sm:text-[28px] font-semibold tracking-[0.3em] uppercase">
               LotWorks Insights
             </span>
-          </div>
-
-          <!--{/* Headline */}
-          <h1 className="text-center text-slate-800 text-[28px] sm:text-[32px] font-semibold mb-2 leading-tight">
-            Preparing your market intelligence
-          </h1>-->
+          </div>        
 
           {/* Status message */}
           <p className="text-center text-slate-500 text-sm mb-6 min-h-[20px]">
