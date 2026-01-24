@@ -66,7 +66,7 @@ const ChoroplethMap = dynamic(() => import('@/components/ChoroplethMap'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full flex items-center justify-center bg-slate-100 rounded-lg">
-      <div className="text-slate-400 text-sm">Loading map...</div>
+      <div className="text-slate-500 text-sm">Loading map...</div>
     </div>
   )
 });
@@ -337,9 +337,9 @@ function LoadingScreen({ message, progress }: { message: string; progress: numbe
           </div>
 
           {/* Footer message */}
-          <div className="flex items-center justify-center gap-2 text-slate-400">
+          <div className="flex items-center justify-center gap-2 text-slate-500">
             <Icon path={mdiClock} size={0.625} />
-            <span className="text-xs">Holding until every insight is ready.</span>
+            <span style={{ fontSize: '12px', lineHeight: '16px' }}>Holding until every insight is ready.</span>
           </div>
         </div>
       </div>
@@ -442,18 +442,22 @@ function StatCard({
       style={accent ? { backgroundColor: '#4B5FD7' } : {}}
       title={tooltip}
     >
-      <div className="flex items-start justify-between">
-        <div>
+      {/* Icon on LEFT - matching other card layouts */}
+      <div className="flex items-start gap-4">
+        <div className={`p-2.5 rounded-xl flex-shrink-0 ${accent ? 'bg-white/20' : 'bg-slate-100'}`}>
+          <Icon path={icon} size={1.25} color={accent ? 'white' : '#64748b'} />
+        </div>
+        <div className="flex-1 min-w-0">
           {/* MD3 Label Large: 14px, weight 500, tracking 0.1px */}
           <div 
-            className={accent ? 'text-white/80' : 'text-slate-500'}
+            className={accent ? 'text-white/90' : 'text-slate-600'}
             style={{ fontSize: '14px', lineHeight: '20px', fontWeight: 500, letterSpacing: '0.1px', marginBottom: '4px' }}
           >
             {title}
           </div>
-          {/* MD3 Headline Medium: 28px, weight 400 */}
+          {/* MD3 Headline Medium: 28px, weight 500 */}
           <div 
-            className={accent ? 'text-white' : 'text-slate-800'}
+            className={accent ? 'text-white' : 'text-slate-900'}
             style={{ fontSize: '28px', lineHeight: '36px', fontWeight: 500 }}
           >
             {typeof value === 'number' ? value.toLocaleString() : value}
@@ -463,8 +467,8 @@ function StatCard({
             <div 
               className={`flex items-center gap-1 mt-2 ${
                 accent 
-                  ? (isPositive ? 'text-emerald-200' : isNegative ? 'text-red-200' : 'text-white/60')
-                  : (isPositive ? 'text-emerald-600' : isNegative ? 'text-red-500' : 'text-slate-400')
+                  ? (isPositive ? 'text-emerald-200' : isNegative ? 'text-red-200' : 'text-white/70')
+                  : (isPositive ? 'text-emerald-600' : isNegative ? 'text-red-600' : 'text-slate-500')
               }`}
               style={{ fontSize: '12px', lineHeight: '16px', fontWeight: 500, letterSpacing: '0.5px' }}
             >
@@ -474,9 +478,6 @@ function StatCard({
               <span>{isPositive ? '+' : ''}{change}% vs prev period</span>
             </div>
           )}
-        </div>
-        <div className={`p-2.5 rounded-xl ${accent ? 'bg-white/20' : 'bg-slate-100'}`}>
-          <Icon path={icon} size={1.25} color={accent ? 'white' : '#64748b'} />
         </div>
       </div>
     </div>
@@ -926,7 +927,7 @@ function PeakActivityHeatmap({ data }: { data?: Record<string, Record<number, nu
           {/* Hour labels */}
           <div className="flex mb-2 ml-14 pr-2">
             {hours.filter((_, i) => i % 3 === 0).map(hour => (
-              <div key={hour} className="flex-1 text-[10px] text-slate-400 font-medium text-center">
+              <div key={hour} className="flex-1 text-[10px] text-slate-500 font-medium text-center">
                 {formatHour(hour)}
               </div>
             ))}
@@ -1216,9 +1217,9 @@ function EngagementQualityCard({ data }: { data?: { engagementRate: number; avgD
             style={{ width: `${metrics.engagementRate}%` }}
           />
         </div>
-        <div className="flex justify-between mt-1.5 text-[10px] text-slate-400">
+        <div className="flex justify-between mt-1.5 text-[10px] text-slate-500">
           <span>0%</span>
-          <span className="text-slate-500 font-medium">Industry avg: 45%</span>
+          <span className="text-slate-600 font-medium">Industry avg: 45%</span>
           <span>100%</span>
         </div>
       </div>
@@ -1997,7 +1998,7 @@ function MapDetailsContent({
             label: '#',
             width: '50px',
             render: (_, index) => (
-              <span className="text-slate-400 font-medium">{index + 1}</span>
+              <span className="text-slate-500 font-medium">{index + 1}</span>
             )
           },
           {
@@ -2342,7 +2343,7 @@ function Sidebar({
               {/* MD3 Title Small: 14px, weight 500 */}
               <div className="text-slate-800" style={{ fontSize: '14px', lineHeight: '20px', fontWeight: 500 }}>LotWorks Insights</div>
               {/* MD3 Label Small: 11px, weight 500, tracking 0.5px */}
-              <div className="text-slate-400 uppercase" style={{ fontSize: '11px', lineHeight: '16px', fontWeight: 500, letterSpacing: '0.5px' }}>Website Market Report</div>
+              <div className="text-slate-500 uppercase" style={{ fontSize: '11px', lineHeight: '16px', fontWeight: 500, letterSpacing: '0.5px' }}>Website Market Report</div>
             </div>
           </div>
         )}
@@ -2375,7 +2376,7 @@ function Sidebar({
                   {/* MD3 Label Large: 14px, weight 500 */}
                   <div style={{ fontSize: '14px', lineHeight: '20px', fontWeight: isActive ? 500 : 400 }}>{tab.label}</div>
                   {/* MD3 Label Small: 11px */}
-                  <div className="text-slate-400" style={{ fontSize: '11px', lineHeight: '16px' }}>{tab.description}</div>
+                  <div className="text-slate-500" style={{ fontSize: '11px', lineHeight: '16px' }}>{tab.description}</div>
                 </div>
               )}
             </button>
@@ -2387,7 +2388,7 @@ function Sidebar({
       {!collapsed && lastUpdated && (
         <div className="p-4 border-t border-slate-100">
           {/* MD3 Label Small: 11px, weight 500 */}
-          <div className="text-slate-400" style={{ fontSize: '11px', lineHeight: '16px', fontWeight: 500 }}>
+          <div className="text-slate-500" style={{ fontSize: '11px', lineHeight: '16px', fontWeight: 500 }}>
             Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
@@ -2449,7 +2450,7 @@ function MobileNav({
                   {/* MD3 Label Large: 14px, weight 500 */}
                   <div style={{ fontSize: '14px', lineHeight: '20px', fontWeight: isActive ? 500 : 400 }}>{tab.label}</div>
                   {/* MD3 Label Small: 11px */}
-                  <div className="text-slate-400" style={{ fontSize: '11px', lineHeight: '16px' }}>{tab.description}</div>
+                  <div className="text-slate-500" style={{ fontSize: '11px', lineHeight: '16px' }}>{tab.description}</div>
                 </div>
               </button>
             );
@@ -2459,7 +2460,7 @@ function MobileNav({
         {lastUpdated && (
           <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-100">
             {/* MD3 Label Small: 11px, weight 500 */}
-            <div className="text-slate-400" style={{ fontSize: '11px', lineHeight: '16px', fontWeight: 500 }}>Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            <div className="text-slate-500" style={{ fontSize: '11px', lineHeight: '16px', fontWeight: 500 }}>Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
           </div>
         )}
       </div>
@@ -2524,7 +2525,7 @@ export default function InsightsPage() {
 
   // Fetch report function
   const fetchReport = useCallback(async (showRefreshIndicator = false) => {
-    const minLoadTime = 1500; // Minimum time to show loading screen
+    const minLoadTime = 1800; // Minimum time to show loading screen
     const startTime = Date.now();
     
     try {
@@ -2549,6 +2550,11 @@ export default function InsightsPage() {
       
       const data = await response.json();
       
+      // Validate that essential data exists before proceeding
+      if (!data || !data.summary || typeof data.summary.totalMapLoads !== 'number') {
+        throw new Error('Invalid report data received from server');
+      }
+      
       // Ensure minimum load time has passed for smooth UX (only on initial load)
       if (!showRefreshIndicator) {
         const elapsed = Date.now() - startTime;
@@ -2557,10 +2563,16 @@ export default function InsightsPage() {
         }
       }
       
-      // Set report and clear loading together to prevent flash
+      // Set report first, then clear loading in a microtask to ensure React processes them correctly
       setReport(data);
       setLastUpdated(new Date());
-      setError(null); // Ensure error is cleared on success
+      setError(null);
+      
+      // Small delay to ensure state is settled before removing loading screen
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      setLoading(false);
+      setRefreshing(false);
     } catch (err) {
       console.error('Fetch error:', err);
       // Only show error after minimum time to prevent flash
@@ -2571,7 +2583,6 @@ export default function InsightsPage() {
         }
       }
       setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
       setLoading(false);
       setRefreshing(false);
     }
@@ -2598,8 +2609,11 @@ export default function InsightsPage() {
     }
   };
 
-  // Loading state - show if loading OR if we have no report yet and no error
-  if (loading) {
+  // Helper to check if report has essential data
+  const isReportReady = report && report.summary && typeof report.summary.totalMapLoads === 'number';
+
+  // Loading state - show if loading OR if we have no complete report yet
+  if (loading || !isReportReady) {
     return <LoadingScreen message={loadingState.message} progress={loadingState.progress} />;
   }
 
@@ -2624,6 +2638,7 @@ export default function InsightsPage() {
     );
   }
 
+  // This check is redundant now but kept as a safeguard
   if (!report) return null;
 
   return (
