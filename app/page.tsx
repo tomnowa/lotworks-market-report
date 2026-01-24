@@ -300,10 +300,10 @@ function LoadingScreen({ message, progress }: { message: string; progress: numbe
             </span>
           </div>
 
-          {/* Headline */}
+          <!--{/* Headline */}
           <h1 className="text-center text-slate-800 text-[28px] sm:text-[32px] font-semibold mb-2 leading-tight">
             Preparing your market intelligence
-          </h1>
+          </h1>-->
 
           {/* Status message */}
           <p className="text-center text-slate-500 text-sm mb-6 min-h-[20px]">
