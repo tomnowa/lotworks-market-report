@@ -362,6 +362,48 @@ function EmptyState({ message = "No data available" }: { message?: string }) {
   );
 }
 
+// MD3 Loading Skeleton for Charts
+function ChartSkeleton() {
+  return (
+    <div className="h-full w-full flex flex-col animate-pulse">
+      {/* Y-axis area */}
+      <div className="flex h-full">
+        <div className="w-10 flex flex-col justify-between py-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-3 w-8 bg-slate-200 rounded" />
+          ))}
+        </div>
+        {/* Chart area */}
+        <div className="flex-1 relative">
+          {/* Grid lines */}
+          <div className="absolute inset-0 flex flex-col justify-between py-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="border-b border-slate-100" />
+            ))}
+          </div>
+          {/* Fake chart line */}
+          <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+            <path
+              d="M 0 70 Q 50 60, 100 65 T 200 55 T 300 60 T 400 45 T 500 50"
+              fill="none"
+              stroke="#e2e8f0"
+              strokeWidth="3"
+              className="w-full"
+              style={{ transform: 'scaleX(1.2)' }}
+            />
+          </svg>
+        </div>
+      </div>
+      {/* X-axis */}
+      <div className="flex justify-between px-12 pt-2">
+        {[...Array(7)].map((_, i) => (
+          <div key={i} className="h-3 w-12 bg-slate-200 rounded" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="mb-4">
@@ -1686,6 +1728,15 @@ function OverviewContent({ report }: { report: MarketReport }) {
   const devices = report.deviceBreakdown || [];
   const orgName = report.organization?.name || '';
   
+  // Track if chart data has been checked (to show skeleton vs empty state)
+  const [chartReady, setChartReady] = useState(false);
+  
+  useEffect(() => {
+    // Small delay to allow data to settle before showing empty state
+    const timer = setTimeout(() => setChartReady(true), 800);
+    return () => clearTimeout(timer);
+  }, []);
+  
   // Generate AI insights dynamically
   const aiInsights = useMemo(() => generateAIInsights(report), [report]);
   
@@ -1808,7 +1859,9 @@ function OverviewContent({ report }: { report: MarketReport }) {
         </div>
         
         <div className="h-80">
-          {viewsData.length === 0 ? (
+          {!chartReady ? (
+            <ChartSkeleton />
+          ) : viewsData.length === 0 ? (
             <EmptyState />
           ) : (
             <ResponsiveContainer width="100%" height="100%">
@@ -1882,121 +1935,104 @@ function MapDetailsContent({
   endDate: string;
 }) {
   const communityPerf = report.communityPerformance || [];
-  const defaultLots = report.topLots || [];
+  const allLots = report.topLots || [];
   
-  const [selectedCommunities, setSelectedCommunities] = useState<string[]>([]);
-  const [lots, setLots] = useState<TopLot[]>(defaultLots);
-  const [lotsLoading, setLotsLoading] = useState(false);
+  // Separate filter states for each table
+  const [topSelectedCommunities, setTopSelectedCommunities] = useState<string[]>([]);
+  const [leastSelectedCommunities, setLeastSelectedCommunities] = useState<string[]>([]);
   const [topFilterOpen, setTopFilterOpen] = useState(false);
   const [leastFilterOpen, setLeastFilterOpen] = useState(false);
   
   const communityNames = useMemo(() => communityPerf.map(c => c.name), [communityPerf]);
   
-  // Reset when client changes
+  // Reset filters when client changes
   useEffect(() => {
-    setSelectedCommunities([]);
-    setLots(defaultLots);
-  }, [client, defaultLots]);
-  
-  // Fetch filtered lots when communities change
-  useEffect(() => {
-    if (selectedCommunities.length === 0) {
-      setLots(defaultLots);
-      return;
-    }
-    
-    const fetchFilteredLots = async () => {
-      setLotsLoading(true);
-      try {
-        const params = new URLSearchParams({
-          start_date: startDate,
-          end_date: endDate,
-          communities: selectedCommunities.join(','),
-          limit: '100',
-        });
-        
-        const response = await fetch(`/api/report/${encodeURIComponent(client)}/lots?${params}`);
-        if (response.ok) {
-          const data = await response.json();
-          setLots(data.lots || []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch filtered lots:', error);
-      } finally {
-        setLotsLoading(false);
-      }
-    };
-    
-    fetchFilteredLots();
-  }, [selectedCommunities, client, startDate, endDate, defaultLots]);
+    setTopSelectedCommunities([]);
+    setLeastSelectedCommunities([]);
+  }, [client]);
   
   const maxMapLoads = Math.max(...communityPerf.map(c => c.mapLoads), 1);
   const maxLotClicks = Math.max(...communityPerf.map(c => c.lotClicks), 1);
   
-  // Top clicked lots (sorted by most clicks)
+  // Client-side filtering for Top Clicked Lots
   const topClickedLots = useMemo(() => {
-    return [...lots].sort((a, b) => b.clicks - a.clicks);
-  }, [lots]);
+    let filtered = [...allLots];
+    if (topSelectedCommunities.length > 0) {
+      filtered = filtered.filter(lot => topSelectedCommunities.includes(lot.community));
+    }
+    return filtered.sort((a, b) => b.clicks - a.clicks);
+  }, [allLots, topSelectedCommunities]);
   
-  // Least clicked lots (sorted by fewest clicks, excluding zeros)
+  // Client-side filtering for Least Clicked Lots
   const leastClickedLots = useMemo(() => {
-    return [...lots]
-      .filter(l => l.clicks > 0)
-      .sort((a, b) => a.clicks - b.clicks);
-  }, [lots]);
+    let filtered = [...allLots].filter(l => l.clicks > 0);
+    if (leastSelectedCommunities.length > 0) {
+      filtered = filtered.filter(lot => leastSelectedCommunities.includes(lot.community));
+    }
+    return filtered.sort((a, b) => a.clicks - b.clicks);
+  }, [allLots, leastSelectedCommunities]);
   
   // Max clicks for gradient scaling
-  const maxClicks = Math.max(...lots.map(l => l.clicks), 1);
+  const maxClicks = Math.max(...allLots.map(l => l.clicks), 1);
+  // Min clicks for least clicked (use 20% of max as reference for gradient intensity)
+  const leastClicksRef = maxClicks * 0.25;
 
   // Rank badge colors for top 3
   const getTopRankStyle = (index: number) => {
     if (index === 0) return { bg: '#fef3c7', text: '#92400e' }; // Gold/Amber
     if (index === 1) return { bg: '#e2e8f0', text: '#475569' }; // Silver/Slate
     if (index === 2) return { bg: '#ffedd5', text: '#c2410c' }; // Bronze/Orange
-    return null;
+    return { bg: 'transparent', text: '#64748b' }; // Default
   };
 
-  // Toggle community selection
-  const handleToggleCommunity = useCallback((name: string) => {
-    setSelectedCommunities(prev => 
-      prev.includes(name) ? prev.filter(c => c !== name) : [...prev, name]
-    );
-  }, []);
-
-  // Clear all selections
-  const handleClearFilter = useCallback(() => {
-    setSelectedCommunities([]);
-  }, []);
-
-  // Render rank with colored badges for top 3
+  // Render rank with consistent alignment - all use same container
   const renderTopRank = (index: number) => {
     const style = getTopRankStyle(index);
-    if (style) {
-      return (
-        <span 
-          className="inline-flex items-center justify-center w-7 h-7 rounded-full font-bold"
-          style={{ backgroundColor: style.bg, color: style.text, fontSize: '12px' }}
-        >
-          {index + 1}
-        </span>
-      );
-    }
-    return <span className="text-slate-500 font-medium">{index + 1}</span>;
+    return (
+      <span 
+        className="inline-flex items-center justify-center w-7 h-7 rounded-full"
+        style={{ 
+          backgroundColor: style.bg, 
+          color: style.text, 
+          fontSize: '12px',
+          fontWeight: index < 3 ? 700 : 500
+        }}
+      >
+        {index + 1}
+      </span>
+    );
   };
 
-  // Get heatmap color for least clicked (red/orange scale)
-  const getLeastClickedColor = (clicks: number, max: number) => {
-    if (max === 0 || clicks === 0) return 'rgba(254, 202, 202, 0.5)';
-    const intensity = 1 - (clicks / max); // Inverse - lower clicks = more intense
+  // Render rank for least clicked (plain, consistent container)
+  const renderLeastRank = (index: number) => {
+    return (
+      <span 
+        className="inline-flex items-center justify-center w-7 h-7 rounded-full text-slate-500"
+        style={{ fontSize: '12px', fontWeight: 500 }}
+      >
+        {index + 1}
+      </span>
+    );
+  };
+
+  // Get heatmap color for least clicked (red/pink scale - lower = more intense)
+  const getLeastClickedColor = (clicks: number) => {
+    const intensity = Math.max(0, 1 - (clicks / leastClicksRef));
+    // Red/rose scale
     const r = 254;
-    const g = Math.round(202 - (intensity * 80));
-    const b = Math.round(202 - (intensity * 80));
-    const alpha = 0.3 + (intensity * 0.4);
+    const g = Math.round(226 - (intensity * 80));
+    const b = Math.round(226 - (intensity * 60));
+    const alpha = 0.25 + (intensity * 0.45);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   };
 
-  // Filter dropdown JSX (inline, not a separate component)
-  const renderFilterDropdown = (isOpen: boolean, onToggle: () => void, tableId: string) => (
+  // Filter dropdown renderer
+  const renderFilterDropdown = (
+    isOpen: boolean, 
+    onToggle: () => void, 
+    selectedCommunities: string[],
+    setSelectedCommunities: React.Dispatch<React.SetStateAction<string[]>>
+  ) => (
     <div className="relative">
       <button
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
@@ -2012,7 +2048,6 @@ function MapDetailsContent({
       
       {isOpen && (
         <>
-          {/* Backdrop to close dropdown */}
           <div 
             className="fixed inset-0 z-40" 
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
@@ -2023,7 +2058,7 @@ function MapDetailsContent({
                 <span className="text-slate-700" style={{ fontSize: '14px', fontWeight: 500 }}>Filter by Community</span>
                 {selectedCommunities.length > 0 && (
                   <button
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleClearFilter(); }}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedCommunities([]); }}
                     className="text-xs text-slate-500 hover:text-slate-700"
                   >
                     Clear all
@@ -2040,7 +2075,13 @@ function MapDetailsContent({
                   return (
                     <button
                       key={name}
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleToggleCommunity(name); }}
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        setSelectedCommunities(prev => 
+                          prev.includes(name) ? prev.filter(c => c !== name) : [...prev, name]
+                        );
+                      }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
                         isSelected ? 'bg-[#4B5FD7]/10' : 'hover:bg-slate-50'
                       }`}
@@ -2128,9 +2169,14 @@ function MapDetailsContent({
       <DataTable<TopLot>
         data={topClickedLots}
         title="Top Clicked Lots"
-        subtitle={lotsLoading ? "Loading..." : selectedCommunities.length > 0 ? `Filtered by ${selectedCommunities.length} communities` : "Highest performing lots by click count"}
+        subtitle={topSelectedCommunities.length > 0 ? `Filtered by ${topSelectedCommunities.length} communities` : "Highest performing lots by click count"}
         itemsPerPage={10}
-        filterComponent={renderFilterDropdown(topFilterOpen, () => { setTopFilterOpen(v => !v); setLeastFilterOpen(false); }, 'top')}
+        filterComponent={renderFilterDropdown(
+          topFilterOpen, 
+          () => { setTopFilterOpen(v => !v); setLeastFilterOpen(false); },
+          topSelectedCommunities,
+          setTopSelectedCommunities
+        )}
         columns={[
           {
             key: 'rank',
@@ -2180,15 +2226,20 @@ function MapDetailsContent({
         <DataTable<TopLot>
           data={leastClickedLots}
           title="Least Clicked Lots"
-          subtitle={lotsLoading ? "Loading..." : selectedCommunities.length > 0 ? `Filtered by ${selectedCommunities.length} communities` : "Lots with lowest engagement — opportunities for improvement"}
+          subtitle={leastSelectedCommunities.length > 0 ? `Filtered by ${leastSelectedCommunities.length} communities` : "Lots with lowest engagement — opportunities for improvement"}
           itemsPerPage={10}
-          filterComponent={renderFilterDropdown(leastFilterOpen, () => { setLeastFilterOpen(v => !v); setTopFilterOpen(false); }, 'least')}
+          filterComponent={renderFilterDropdown(
+            leastFilterOpen, 
+            () => { setLeastFilterOpen(v => !v); setTopFilterOpen(false); },
+            leastSelectedCommunities,
+            setLeastSelectedCommunities
+          )}
           columns={[
             {
               key: 'rank',
               label: '#',
-              width: '50px',
-              render: (_, index) => <span className="text-slate-500 font-medium">{index + 1}</span>
+              width: '60px',
+              render: (_, index) => renderLeastRank(index)
             },
             {
               key: 'lot',
@@ -2210,7 +2261,7 @@ function MapDetailsContent({
               render: (item) => (
                 <span 
                   className="inline-block px-2.5 py-1 rounded-md text-sm font-semibold"
-                  style={{ backgroundColor: getLeastClickedColor(item.clicks, maxClicks * 0.2) }}
+                  style={{ backgroundColor: getLeastClickedColor(item.clicks) }}
                 >
                   {item.clicks}
                 </span>
