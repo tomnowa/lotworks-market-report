@@ -355,7 +355,7 @@ function EmptyState({ message = "No data available" }: { message?: string }) {
   return (
     <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-slate-400">
       <Icon path={mdiFileAlert} size={2.5} color="#64748b" style={{ opacity: 0.5 }} />
-      <p className="mt-3 text-slate-500 text-sm">{message}</p>
+      <p className="mt-3 text-slate-500" style={{ fontSize: '14px', lineHeight: '20px' }}>{message}</p>
     </div>
   );
 }
@@ -363,8 +363,10 @@ function EmptyState({ message = "No data available" }: { message?: string }) {
 function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="mb-4">
-      <h3 className="text-lg font-semibold text-slate-800">{title}</h3>
-      {subtitle && <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>}
+      {/* MD3 Title Medium: 16px, weight 500, tracking 0.15px */}
+      <h3 className="text-slate-800" style={{ fontSize: '16px', lineHeight: '24px', fontWeight: 500, letterSpacing: '0.15px' }}>{title}</h3>
+      {/* MD3 Body Small: 12px, weight 400, tracking 0.4px */}
+      {subtitle && <p className="text-slate-500 mt-0.5" style={{ fontSize: '12px', lineHeight: '16px', letterSpacing: '0.4px' }}>{subtitle}</p>}
     </div>
   );
 }
@@ -395,13 +397,14 @@ function ChartCard({
 function ChartTooltipWithPercent({ active, payload, label, showPercent = false }: any) {
   if (!active || !payload || !payload.length) return null;
   return (
-    <div className="bg-slate-800 text-white px-3 py-2 rounded-lg shadow-xl text-sm">
-      <div className="font-semibold mb-1">{label}</div>
+    <div className="bg-slate-800 text-white px-3 py-2 rounded-lg shadow-xl" style={{ fontSize: '12px', lineHeight: '16px' }}>
+      {/* MD3 Label Medium: 12px, weight 500 */}
+      <div className="mb-1" style={{ fontWeight: 500 }}>{label}</div>
       {payload.map((p: any, i: number) => (
         <div key={i} className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
           <span className="text-slate-300">{p.name}:</span>
-          <span className="font-medium">{p.value?.toLocaleString()}</span>
+          <span style={{ fontWeight: 500 }}>{p.value?.toLocaleString()}</span>
           {showPercent && p.payload?.percentage != null && (
             <span className="text-slate-400">({p.payload.percentage}%)</span>
           )}
@@ -441,18 +444,30 @@ function StatCard({
     >
       <div className="flex items-start justify-between">
         <div>
-          <div className={`text-sm font-medium mb-1 ${accent ? 'text-white/80' : 'text-slate-500'}`}>
+          {/* MD3 Label Large: 14px, weight 500, tracking 0.1px */}
+          <div 
+            className={accent ? 'text-white/80' : 'text-slate-500'}
+            style={{ fontSize: '14px', lineHeight: '20px', fontWeight: 500, letterSpacing: '0.1px', marginBottom: '4px' }}
+          >
             {title}
           </div>
-          <div className={`text-3xl font-bold ${accent ? 'text-white' : 'text-slate-800'}`}>
+          {/* MD3 Headline Medium: 28px, weight 400 */}
+          <div 
+            className={accent ? 'text-white' : 'text-slate-800'}
+            style={{ fontSize: '28px', lineHeight: '36px', fontWeight: 500 }}
+          >
             {typeof value === 'number' ? value.toLocaleString() : value}
           </div>
           {change !== undefined && (
-            <div className={`flex items-center gap-1 mt-2 text-sm font-medium ${
-              accent 
-                ? (isPositive ? 'text-emerald-200' : isNegative ? 'text-red-200' : 'text-white/60')
-                : (isPositive ? 'text-emerald-600' : isNegative ? 'text-red-500' : 'text-slate-400')
-            }`}>
+            /* MD3 Label Medium: 12px, weight 500, tracking 0.5px */
+            <div 
+              className={`flex items-center gap-1 mt-2 ${
+                accent 
+                  ? (isPositive ? 'text-emerald-200' : isNegative ? 'text-red-200' : 'text-white/60')
+                  : (isPositive ? 'text-emerald-600' : isNegative ? 'text-red-500' : 'text-slate-400')
+              }`}
+              style={{ fontSize: '12px', lineHeight: '16px', fontWeight: 500, letterSpacing: '0.5px' }}
+            >
               {change !== 0 && (
                 <Icon path={isPositive ? mdiTrendingUp : mdiTrendingDown} size={0.75} />
               )}
@@ -484,8 +499,10 @@ function InsightCard({ type, title, description }: { type: 'hot' | 'tip' | 'warn
           <Icon path={c.icon} size={1} color={c.iconColor} />
         </div>
         <div>
-          <div className={`font-semibold ${c.titleColor}`}>{title}</div>
-          <div className="text-sm text-slate-600 mt-0.5">{description}</div>
+          {/* MD3 Title Small: 14px, weight 500, tracking 0.1px */}
+          <div className={c.titleColor} style={{ fontSize: '14px', lineHeight: '20px', fontWeight: 500, letterSpacing: '0.1px' }}>{title}</div>
+          {/* MD3 Body Small: 12px, weight 400, tracking 0.4px */}
+          <div className="text-slate-600 mt-0.5" style={{ fontSize: '12px', lineHeight: '16px', letterSpacing: '0.4px' }}>{description}</div>
         </div>
       </div>
     </div>
@@ -1528,8 +1545,10 @@ function DataTable<T>({
         <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-slate-800">{title}</h3>
-              {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
+              {/* MD3 Title Medium: 16px, weight 500 */}
+              <h3 className="text-slate-800" style={{ fontSize: '16px', lineHeight: '24px', fontWeight: 500, letterSpacing: '0.15px' }}>{title}</h3>
+              {/* MD3 Body Small: 12px */}
+              {subtitle && <p className="text-slate-500" style={{ fontSize: '12px', lineHeight: '16px', letterSpacing: '0.4px' }}>{subtitle}</p>}
             </div>
             {filterComponent}
           </div>
@@ -1544,12 +1563,15 @@ function DataTable<T>({
       <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-slate-800">{title}</h3>
-            {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
+            {/* MD3 Title Medium: 16px, weight 500 */}
+            <h3 className="text-slate-800" style={{ fontSize: '16px', lineHeight: '24px', fontWeight: 500, letterSpacing: '0.15px' }}>{title}</h3>
+            {/* MD3 Body Small: 12px */}
+            {subtitle && <p className="text-slate-500" style={{ fontSize: '12px', lineHeight: '16px', letterSpacing: '0.4px' }}>{subtitle}</p>}
           </div>
           <div className="flex items-center gap-3">
             {filterComponent}
-            <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+            {/* MD3 Label Small: 11px, weight 500 */}
+            <span className="text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full" style={{ fontSize: '11px', lineHeight: '16px', fontWeight: 500 }}>
               {data.length} total
             </span>
           </div>
@@ -1563,8 +1585,14 @@ function DataTable<T>({
               {columns.map(col => (
                 <th
                   key={col.key}
-                  style={{ width: col.width }}
-                  className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider ${
+                  style={{ 
+                    width: col.width,
+                    fontSize: '11px',
+                    lineHeight: '16px',
+                    fontWeight: 500,
+                    letterSpacing: '0.5px',
+                  }}
+                  className={`px-4 py-3 uppercase ${
                     col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
                   } ${col.sortable ? 'cursor-pointer hover:bg-slate-100 select-none transition-colors' : ''} text-slate-500`}
                   onClick={() => col.sortable && handleSort(col.key)}
@@ -1572,7 +1600,7 @@ function DataTable<T>({
                   <div className={`flex items-center gap-1.5 ${col.align === 'right' ? 'justify-end' : ''}`}>
                     {col.label}
                     {col.sortable && (
-                      <Icon path={mdiArrowUpDown} size={0.75} color={sortKey === col.key ? '#059669' : '#cbd5e1'} />
+                      <Icon path={mdiArrowUpDown} size={0.7} color={sortKey === col.key ? '#4B5FD7' : '#cbd5e1'} />
                     )}
                   </div>
                 </th>
@@ -1585,7 +1613,8 @@ function DataTable<T>({
                 {columns.map(col => (
                   <td
                     key={col.key}
-                    className={`px-4 py-3.5 text-sm ${
+                    style={{ fontSize: '14px', lineHeight: '20px' }}
+                    className={`px-4 py-3.5 ${
                       col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
                     }`}
                   >
@@ -1600,7 +1629,8 @@ function DataTable<T>({
       
       {totalPages > 1 && (
         <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/30 flex items-center justify-between">
-          <span className="text-sm text-slate-500">
+          {/* MD3 Body Small: 12px */}
+          <span className="text-slate-500" style={{ fontSize: '12px', lineHeight: '16px' }}>
             {page * itemsPerPage + 1}–{Math.min((page + 1) * itemsPerPage, data.length)} of {data.length}
           </span>
           <div className="flex items-center gap-1">
@@ -1618,7 +1648,8 @@ function DataTable<T>({
             >
               <Icon path={mdiChevronLeft} size={1} />
             </button>
-            <span className="px-3 py-1 text-sm font-medium text-slate-700 bg-white rounded-lg border border-slate-200">
+            {/* MD3 Label Medium: 12px, weight 500 */}
+            <span className="px-3 py-1 text-slate-700 bg-white rounded-lg border border-slate-200" style={{ fontSize: '12px', lineHeight: '16px', fontWeight: 500 }}>
               {page + 1} / {totalPages}
             </span>
             <button
@@ -2305,27 +2336,19 @@ function Sidebar({
         {!collapsed && (
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-lg bg-white flex items-center justify-center">
-              <svg width="20" height="13" viewBox="0 0 52 42" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-8 h-8">
-                <path d="M13.6111 0L0 5.17937L16.8565 42H25.2778L13.6111 0Z" fill="#192A54"/>
-                <path d="M30.5278 23.5278L33.8333 9.52778L40.8333 35.1726H35.7377L30.5278 23.5278Z" fill="#192A54"/>
-                <path d="M21 22.5556L25.6667 39.2778L33.1009 7.53369L23.0247 11.2063L21 22.5556Z" fill="#4B5FD7"/>
-                <path d="M51.4171 2.16626L44.4485 4.80303L38.8889 23.917L41.4167 32.8615L51.4171 2.16626Z" fill="#4B5FD7"/>
-              </svg>
+              <LotWorksLogo size="default" />
             </div>
             <div>
-              <div className="font-bold text-slate-800 text-sm">LotWorks Insights</div>
-              <div className="text-[10px] text-slate-400 uppercase tracking-wider">Website Market Report</div>
+              {/* MD3 Title Small: 14px, weight 500 */}
+              <div className="text-slate-800" style={{ fontSize: '14px', lineHeight: '20px', fontWeight: 500 }}>LotWorks Insights</div>
+              {/* MD3 Label Small: 11px, weight 500, tracking 0.5px */}
+              <div className="text-slate-400 uppercase" style={{ fontSize: '11px', lineHeight: '16px', fontWeight: 500, letterSpacing: '0.5px' }}>Website Market Report</div>
             </div>
           </div>
         )}
         {collapsed && (
           <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center mx-auto">
-            <svg width="20" height="13" viewBox="0 0 52 42" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-4">
-              <path d="M13.6111 0L0 5.17937L16.8565 42H25.2778L13.6111 0Z" fill="#192A54"/>
-              <path d="M30.5278 23.5278L33.8333 9.52778L40.8333 35.1726H35.7377L30.5278 23.5278Z" fill="#192A54"/>
-              <path d="M21 22.5556L25.6667 39.2778L33.1009 7.53369L23.0247 11.2063L21 22.5556Z" fill="#4B5FD7"/>
-              <path d="M51.4171 2.16626L44.4485 4.80303L38.8889 23.917L41.4167 32.8615L51.4171 2.16626Z" fill="#4B5FD7"/>
-            </svg>
+            <LotWorksLogo size="small" />
           </div>
         )}
       </div>
@@ -2349,8 +2372,10 @@ function Sidebar({
               </div>
               {!collapsed && (
                 <div className="text-left">
-                  <div className={`font-medium ${isActive ? 'text-slate-800' : ''}`}>{tab.label}</div>
-                  <div className="text-xs text-slate-400">{tab.description}</div>
+                  {/* MD3 Label Large: 14px, weight 500 */}
+                  <div style={{ fontSize: '14px', lineHeight: '20px', fontWeight: isActive ? 500 : 400 }}>{tab.label}</div>
+                  {/* MD3 Label Small: 11px */}
+                  <div className="text-slate-400" style={{ fontSize: '11px', lineHeight: '16px' }}>{tab.description}</div>
                 </div>
               )}
             </button>
@@ -2361,8 +2386,9 @@ function Sidebar({
       {/* Footer */}
       {!collapsed && lastUpdated && (
         <div className="p-4 border-t border-slate-100">
-          <div className="text-xs text-slate-400">
-            Last updated: {lastUpdated.toLocaleTimeString()}
+          {/* MD3 Label Small: 11px, weight 500 */}
+          <div className="text-slate-400" style={{ fontSize: '11px', lineHeight: '16px', fontWeight: 500 }}>
+            Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
       )}
@@ -2395,13 +2421,9 @@ function MobileNav({
       <div className="absolute left-0 top-0 bottom-0 w-72 bg-white shadow-2xl">
         <div className="h-16 border-b border-slate-100 flex items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <svg width="20" height="13" viewBox="0 0 52 42" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-8 h-5">
-              <path d="M13.6111 0L0 5.17937L16.8565 42H25.2778L13.6111 0Z" fill="#192A54"/>
-              <path d="M30.5278 23.5278L33.8333 9.52778L40.8333 35.1726H35.7377L30.5278 23.5278Z" fill="#192A54"/>
-              <path d="M21 22.5556L25.6667 39.2778L33.1009 7.53369L23.0247 11.2063L21 22.5556Z" fill="#4B5FD7"/>
-              <path d="M51.4171 2.16626L44.4485 4.80303L38.8889 23.917L41.4167 32.8615L51.4171 2.16626Z" fill="#4B5FD7"/>
-            </svg>
-            <span className="font-bold text-slate-800">LotWorks Insights</span>
+            <LotWorksLogo size="default" />
+            {/* MD3 Title Small: 14px, weight 500 */}
+            <span className="text-slate-800" style={{ fontSize: '14px', lineHeight: '20px', fontWeight: 500 }}>LotWorks Insights</span>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg">
             <Icon path={mdiClose} size={1} color="#64748b" />
@@ -2424,8 +2446,10 @@ function MobileNav({
                   <Icon path={tab.icon} size={1} color={isActive ? '#4B5FD7' : '#64748b'} />
                 </div>
                 <div className="text-left">
-                  <div className="font-medium">{tab.label}</div>
-                  <div className="text-xs text-slate-400">{tab.description}</div>
+                  {/* MD3 Label Large: 14px, weight 500 */}
+                  <div style={{ fontSize: '14px', lineHeight: '20px', fontWeight: isActive ? 500 : 400 }}>{tab.label}</div>
+                  {/* MD3 Label Small: 11px */}
+                  <div className="text-slate-400" style={{ fontSize: '11px', lineHeight: '16px' }}>{tab.description}</div>
                 </div>
               </button>
             );
@@ -2434,7 +2458,8 @@ function MobileNav({
         
         {lastUpdated && (
           <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-100">
-            <div className="text-xs text-slate-400">Last updated: {lastUpdated.toLocaleTimeString()}</div>
+            {/* MD3 Label Small: 11px, weight 500 */}
+            <div className="text-slate-400" style={{ fontSize: '11px', lineHeight: '16px', fontWeight: 500 }}>Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
           </div>
         )}
       </div>
@@ -2499,13 +2524,16 @@ export default function InsightsPage() {
 
   // Fetch report function
   const fetchReport = useCallback(async (showRefreshIndicator = false) => {
+    const minLoadTime = 1500; // Minimum time to show loading screen
+    const startTime = Date.now();
+    
     try {
       if (showRefreshIndicator) {
         setRefreshing(true);
       } else {
         setLoading(true);
+        setError(null); // Clear error at start of fresh load
       }
-      setError(null);
       
       const params = new URLSearchParams({
         start_date: formatDateToISO(startDate),
@@ -2520,10 +2548,28 @@ export default function InsightsPage() {
       }
       
       const data = await response.json();
+      
+      // Ensure minimum load time has passed for smooth UX (only on initial load)
+      if (!showRefreshIndicator) {
+        const elapsed = Date.now() - startTime;
+        if (elapsed < minLoadTime) {
+          await new Promise(resolve => setTimeout(resolve, minLoadTime - elapsed));
+        }
+      }
+      
+      // Set report and clear loading together to prevent flash
       setReport(data);
       setLastUpdated(new Date());
+      setError(null); // Ensure error is cleared on success
     } catch (err) {
       console.error('Fetch error:', err);
+      // Only show error after minimum time to prevent flash
+      if (!showRefreshIndicator) {
+        const elapsed = Date.now() - startTime;
+        if (elapsed < minLoadTime) {
+          await new Promise(resolve => setTimeout(resolve, minLoadTime - elapsed));
+        }
+      }
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
@@ -2552,13 +2598,13 @@ export default function InsightsPage() {
     }
   };
 
-  // Loading state
-  if (loading && !report) {
+  // Loading state - show if loading OR if we have no report yet and no error
+  if (loading) {
     return <LoadingScreen message={loadingState.message} progress={loadingState.progress} />;
   }
 
-  // Error state
-  if (error && !report) {
+  // Error state - only show if we have an error AND no report AND not loading
+  if (error && !report && !loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl p-8 shadow-xl max-w-md w-full text-center border border-slate-200">
