@@ -295,7 +295,7 @@ function LoadingScreen({ message, progress }: { message: string; progress: numbe
 
           {/* Brand label */}
           <div className="text-center mb-2">
-            <span className="text-[#4B5FD7] text-[24px] sm:text-[28px] font-semibold tracking-[0.3em] uppercase">
+            <span className="text-[#4B5FD7] text-[16px] sm:text-[24px] font-semibold tracking-[0.3em] uppercase">
               LotWorks Insights
             </span>
           </div>        
