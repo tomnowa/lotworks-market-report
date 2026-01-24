@@ -368,36 +368,22 @@ function ChartSkeleton() {
     <div className="h-full w-full flex flex-col animate-pulse">
       {/* Y-axis area */}
       <div className="flex h-full">
-        <div className="w-10 flex flex-col justify-between py-4">
+        <div className="w-10 flex flex-col justify-between py-4 pr-2">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-3 w-8 bg-slate-200 rounded" />
+            <div key={i} className="h-2 w-6 bg-slate-200 rounded ml-auto" />
           ))}
         </div>
-        {/* Chart area */}
-        <div className="flex-1 relative">
-          {/* Grid lines */}
-          <div className="absolute inset-0 flex flex-col justify-between py-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="border-b border-slate-100" />
-            ))}
-          </div>
-          {/* Fake chart line */}
-          <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
-            <path
-              d="M 0 70 Q 50 60, 100 65 T 200 55 T 300 60 T 400 45 T 500 50"
-              fill="none"
-              stroke="#e2e8f0"
-              strokeWidth="3"
-              className="w-full"
-              style={{ transform: 'scaleX(1.2)' }}
-            />
-          </svg>
+        {/* Chart area with grid lines */}
+        <div className="flex-1 flex flex-col justify-between py-4 border-l border-slate-200">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="border-b border-slate-100 w-full" />
+          ))}
         </div>
       </div>
       {/* X-axis */}
-      <div className="flex justify-between px-12 pt-2">
+      <div className="flex justify-between pl-12 pr-4 pt-3">
         {[...Array(7)].map((_, i) => (
-          <div key={i} className="h-3 w-12 bg-slate-200 rounded" />
+          <div key={i} className="h-2 w-10 bg-slate-200 rounded" />
         ))}
       </div>
     </div>
@@ -1732,8 +1718,8 @@ function OverviewContent({ report }: { report: MarketReport }) {
   const [chartReady, setChartReady] = useState(false);
   
   useEffect(() => {
-    // Small delay to allow data to settle before showing empty state
-    const timer = setTimeout(() => setChartReady(true), 800);
+    // Delay before showing empty state - ensures data has time to load
+    const timer = setTimeout(() => setChartReady(true), 1500);
     return () => clearTimeout(timer);
   }, []);
   
@@ -1859,11 +1845,7 @@ function OverviewContent({ report }: { report: MarketReport }) {
         </div>
         
         <div className="h-80">
-          {!chartReady ? (
-            <ChartSkeleton />
-          ) : viewsData.length === 0 ? (
-            <EmptyState />
-          ) : (
+          {viewsData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={viewsData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -1888,6 +1870,10 @@ function OverviewContent({ report }: { report: MarketReport }) {
                 })}
               </LineChart>
             </ResponsiveContainer>
+          ) : !chartReady ? (
+            <ChartSkeleton />
+          ) : (
+            <EmptyState />
           )}
         </div>
       </div>
@@ -1935,7 +1921,7 @@ function MapDetailsContent({
   endDate: string;
 }) {
   const communityPerf = report.communityPerformance || [];
-  const allLots = report.topLots || [];
+  const defaultLots = report.topLots || [];
   
   // Separate filter states for each table
   const [topSelectedCommunities, setTopSelectedCommunities] = useState<string[]>([]);
@@ -1943,38 +1929,98 @@ function MapDetailsContent({
   const [topFilterOpen, setTopFilterOpen] = useState(false);
   const [leastFilterOpen, setLeastFilterOpen] = useState(false);
   
+  // Separate data states for each table
+  const [topLots, setTopLots] = useState<TopLot[]>(defaultLots);
+  const [leastLots, setLeastLots] = useState<TopLot[]>(() => 
+    [...defaultLots].filter(l => l.clicks > 0).sort((a, b) => a.clicks - b.clicks)
+  );
+  const [topLoading, setTopLoading] = useState(false);
+  const [leastLoading, setLeastLoading] = useState(false);
+  
   const communityNames = useMemo(() => communityPerf.map(c => c.name), [communityPerf]);
   
-  // Reset filters when client changes
+  // Reset filters and data when client changes
   useEffect(() => {
     setTopSelectedCommunities([]);
     setLeastSelectedCommunities([]);
-  }, [client]);
+    setTopLots(defaultLots);
+    setLeastLots([...defaultLots].filter(l => l.clicks > 0).sort((a, b) => a.clicks - b.clicks));
+  }, [client, defaultLots]);
+  
+  // Fetch TOP lots when filter changes
+  useEffect(() => {
+    if (topSelectedCommunities.length === 0) {
+      setTopLots(defaultLots);
+      return;
+    }
+    
+    const fetchFilteredLots = async () => {
+      setTopLoading(true);
+      try {
+        const params = new URLSearchParams({
+          start_date: startDate,
+          end_date: endDate,
+          communities: topSelectedCommunities.join(','),
+          limit: '50',
+          sort: 'desc', // Top clicked = descending
+        });
+        
+        const response = await fetch(`/api/report/${encodeURIComponent(client)}/lots?${params}`);
+        if (response.ok) {
+          const data = await response.json();
+          setTopLots(data.lots || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch filtered top lots:', error);
+      } finally {
+        setTopLoading(false);
+      }
+    };
+    
+    fetchFilteredLots();
+  }, [topSelectedCommunities, client, startDate, endDate, defaultLots]);
+  
+  // Fetch LEAST clicked lots when filter changes
+  useEffect(() => {
+    if (leastSelectedCommunities.length === 0) {
+      setLeastLots([...defaultLots].filter(l => l.clicks > 0).sort((a, b) => a.clicks - b.clicks));
+      return;
+    }
+    
+    const fetchFilteredLots = async () => {
+      setLeastLoading(true);
+      try {
+        const params = new URLSearchParams({
+          start_date: startDate,
+          end_date: endDate,
+          communities: leastSelectedCommunities.join(','),
+          limit: '50',
+          sort: 'asc', // Least clicked = ascending
+        });
+        
+        const response = await fetch(`/api/report/${encodeURIComponent(client)}/lots?${params}`);
+        if (response.ok) {
+          const data = await response.json();
+          // Filter out zeros and ensure ascending sort
+          const filtered = (data.lots || []).filter((l: TopLot) => l.clicks > 0).sort((a: TopLot, b: TopLot) => a.clicks - b.clicks);
+          setLeastLots(filtered);
+        }
+      } catch (error) {
+        console.error('Failed to fetch filtered least lots:', error);
+      } finally {
+        setLeastLoading(false);
+      }
+    };
+    
+    fetchFilteredLots();
+  }, [leastSelectedCommunities, client, startDate, endDate, defaultLots]);
   
   const maxMapLoads = Math.max(...communityPerf.map(c => c.mapLoads), 1);
   const maxLotClicks = Math.max(...communityPerf.map(c => c.lotClicks), 1);
   
-  // Client-side filtering for Top Clicked Lots
-  const topClickedLots = useMemo(() => {
-    let filtered = [...allLots];
-    if (topSelectedCommunities.length > 0) {
-      filtered = filtered.filter(lot => topSelectedCommunities.includes(lot.community));
-    }
-    return filtered.sort((a, b) => b.clicks - a.clicks);
-  }, [allLots, topSelectedCommunities]);
-  
-  // Client-side filtering for Least Clicked Lots
-  const leastClickedLots = useMemo(() => {
-    let filtered = [...allLots].filter(l => l.clicks > 0);
-    if (leastSelectedCommunities.length > 0) {
-      filtered = filtered.filter(lot => leastSelectedCommunities.includes(lot.community));
-    }
-    return filtered.sort((a, b) => a.clicks - b.clicks);
-  }, [allLots, leastSelectedCommunities]);
-  
-  // Max clicks for gradient scaling
-  const maxClicks = Math.max(...allLots.map(l => l.clicks), 1);
-  // Min clicks for least clicked (use 20% of max as reference for gradient intensity)
+  // Max clicks for gradient scaling (use defaultLots for consistent scaling)
+  const maxClicks = Math.max(...defaultLots.map(l => l.clicks), 1);
+  // Reference for least clicked gradient (25% of max)
   const leastClicksRef = maxClicks * 0.25;
 
   // Rank badge colors for top 3
@@ -2031,17 +2077,19 @@ function MapDetailsContent({
     isOpen: boolean, 
     onToggle: () => void, 
     selectedCommunities: string[],
-    setSelectedCommunities: React.Dispatch<React.SetStateAction<string[]>>
+    setSelectedCommunities: React.Dispatch<React.SetStateAction<string[]>>,
+    isLoading: boolean
   ) => (
     <div className="relative">
       <button
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all"
+        className={`flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all ${isLoading ? 'opacity-70' : ''}`}
         style={{ fontSize: '12px', lineHeight: '16px', fontWeight: 500 }}
+        disabled={isLoading}
       >
         <Icon path={mdiFilterOutline} size={0.75} color={selectedCommunities.length > 0 ? '#4B5FD7' : '#64748b'} />
         <span className={selectedCommunities.length > 0 ? 'text-[#4B5FD7]' : 'text-slate-600'}>
-          {selectedCommunities.length > 0 ? `${selectedCommunities.length} selected` : 'Filter'}
+          {isLoading ? 'Loading...' : selectedCommunities.length > 0 ? `${selectedCommunities.length} selected` : 'Filter'}
         </span>
         <Icon path={isOpen ? mdiChevronUp : mdiChevronDown} size={0.65} color="#64748b" />
       </button>
@@ -2167,15 +2215,16 @@ function MapDetailsContent({
       
       {/* Top Clicked Lots Table */}
       <DataTable<TopLot>
-        data={topClickedLots}
+        data={topLots}
         title="Top Clicked Lots"
-        subtitle={topSelectedCommunities.length > 0 ? `Filtered by ${topSelectedCommunities.length} communities` : "Highest performing lots by click count"}
+        subtitle={topLoading ? "Loading..." : topSelectedCommunities.length > 0 ? `Filtered by ${topSelectedCommunities.length} communities` : "Highest performing lots by click count"}
         itemsPerPage={10}
         filterComponent={renderFilterDropdown(
           topFilterOpen, 
           () => { setTopFilterOpen(v => !v); setLeastFilterOpen(false); },
           topSelectedCommunities,
-          setTopSelectedCommunities
+          setTopSelectedCommunities,
+          topLoading
         )}
         columns={[
           {
@@ -2222,17 +2271,18 @@ function MapDetailsContent({
       />
       
       {/* Least Clicked Lots Table */}
-      {leastClickedLots.length > 0 && (
+      {leastLots.length > 0 && (
         <DataTable<TopLot>
-          data={leastClickedLots}
+          data={leastLots}
           title="Least Clicked Lots"
-          subtitle={leastSelectedCommunities.length > 0 ? `Filtered by ${leastSelectedCommunities.length} communities` : "Lots with lowest engagement — opportunities for improvement"}
+          subtitle={leastLoading ? "Loading..." : leastSelectedCommunities.length > 0 ? `Filtered by ${leastSelectedCommunities.length} communities` : "Lots with lowest engagement — opportunities for improvement"}
           itemsPerPage={10}
           filterComponent={renderFilterDropdown(
             leastFilterOpen, 
             () => { setLeastFilterOpen(v => !v); setTopFilterOpen(false); },
             leastSelectedCommunities,
-            setLeastSelectedCommunities
+            setLeastSelectedCommunities,
+            leastLoading
           )}
           columns={[
             {
