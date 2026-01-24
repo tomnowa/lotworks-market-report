@@ -459,14 +459,20 @@ function StatCard({
   
   return (
     <div 
-      className={`rounded-2xl p-5 transition-all ${
+      className={`rounded-2xl p-5 transition-all hover:shadow-lg hover:-translate-y-0.5 relative group ${
         accent 
           ? 'text-white shadow-lg' 
-          : 'bg-white border border-slate-200 shadow-sm'
+          : 'bg-white border border-slate-200 shadow-sm hover:border-slate-300'
       }`}
       style={accent ? { backgroundColor: '#4B5FD7' } : {}}
-      title={tooltip}
     >
+      {/* Custom styled tooltip that appears above the card */}
+      {tooltip && (
+        <div className="absolute bottom-full left-0 right-0 mb-2 mx-1 px-3 py-2 bg-slate-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 text-center">
+          {tooltip}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+        </div>
+      )}
       {/* Icon on LEFT - matching other card layouts */}
       <div className="flex items-start gap-4">
         <div className={`p-2.5 rounded-xl flex-shrink-0 ${accent ? 'bg-white/20' : 'bg-slate-100'}`}>
@@ -1394,26 +1400,59 @@ function DateRangePicker({
   disabled?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [tempStart, setTempStart] = useState(startDate);
+  const [tempEnd, setTempEnd] = useState(endDate);
   
   const presets = [
     { label: 'Last 7 days', days: 7 },
     { label: 'Last 14 days', days: 14 },
     { label: 'Last 30 days', days: 30 },
+    { label: 'Last 60 days', days: 60 },
     { label: 'Last 90 days', days: 90 },
+    { label: 'This Month', days: -1 },
+    { label: 'Last Month', days: -2 },
   ];
   
-  const applyPreset = (days: number) => {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - days);
+  const handlePreset = (days: number) => {
+    const now = new Date();
+    let start: Date, end: Date;
+    
+    if (days === -1) {
+      // This Month
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = now;
+    } else if (days === -2) {
+      // Last Month
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 0);
+    } else {
+      end = now;
+      start = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    }
+    
     onChange(start, end);
     setIsOpen(false);
+  };
+  
+  const handleApply = () => {
+    if (tempStart > tempEnd) {
+      onChange(tempEnd, tempStart);
+    } else {
+      onChange(tempStart, tempEnd);
+    }
+    setIsOpen(false);
+  };
+
+  const handleOpen = () => {
+    setTempStart(startDate);
+    setTempEnd(endDate);
+    setIsOpen(true);
   };
   
   return (
     <div className="relative">
       <button
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={() => !disabled && handleOpen()}
         disabled={disabled}
         className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm hover:bg-slate-50 transition-colors disabled:opacity-50"
       >
@@ -1421,23 +1460,59 @@ function DateRangePicker({
         <span className="hidden sm:inline text-slate-700">
           {formatDateForDisplay(startDate)} – {formatDateForDisplay(endDate)}
         </span>
-        <Icon path={mdiChevronDown} size={0.75} color="#64748b" />
+        <Icon path={mdiChevronDown} size={0.75} color="#64748b" className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-20 p-3 min-w-[200px]">
-            <div className="space-y-1">
-              {presets.map(preset => (
-                <button
-                  key={preset.days}
-                  onClick={() => applyPreset(preset.days)}
-                  className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-100 transition-colors"
-                >
-                  {preset.label}
-                </button>
-              ))}
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="p-3 border-b border-slate-100 bg-slate-50">
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Quick Select</div>
+              <div className="grid grid-cols-2 gap-1">
+                {presets.map(preset => (
+                  <button
+                    key={preset.label}
+                    onClick={() => handlePreset(preset.days)}
+                    className="text-left px-3 py-2 text-sm text-slate-700 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="p-4 space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Start Date</label>
+                <input
+                  type="date"
+                  value={formatDateToISO(tempStart)}
+                  onChange={(e) => setTempStart(new Date(e.target.value + 'T00:00:00'))}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">End Date</label>
+                <input
+                  type="date"
+                  value={formatDateToISO(tempEnd)}
+                  onChange={(e) => setTempEnd(new Date(e.target.value + 'T00:00:00'))}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                />
+              </div>
+              {tempStart > tempEnd && (
+                <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
+                  <Icon path={mdiInformation} size={0.7} />
+                  Dates will be swapped automatically
+                </div>
+              )}
+              <button
+                onClick={handleApply}
+                className="w-full py-2.5 text-white text-sm font-semibold rounded-lg hover:opacity-90 transition-colors"
+                style={{ backgroundColor: '#4B5FD7' }}
+              >
+                Apply Date Range
+              </button>
             </div>
           </div>
         </>
@@ -1953,20 +2028,24 @@ function MapDetailsContent({
       setTopLoading(true);
       try {
         const params = new URLSearchParams({
+          client,
           start_date: startDate,
           end_date: endDate,
           communities: topSelectedCommunities.join(','),
-          limit: '50',
-          sort: 'desc', // Top clicked = descending
         });
         
-        const response = await fetch(`/api/report/${encodeURIComponent(client)}/lots?${params}`);
+        const response = await fetch(`/api/lots?${params}`);
         if (response.ok) {
           const data = await response.json();
           setTopLots(data.lots || []);
+        } else {
+          // Fallback to filtering existing data locally
+          setTopLots(defaultLots.filter(lot => topSelectedCommunities.includes(lot.community)));
         }
       } catch (error) {
         console.error('Failed to fetch filtered top lots:', error);
+        // Fallback to filtering existing data locally
+        setTopLots(defaultLots.filter(lot => topSelectedCommunities.includes(lot.community)));
       } finally {
         setTopLoading(false);
       }
@@ -1986,22 +2065,32 @@ function MapDetailsContent({
       setLeastLoading(true);
       try {
         const params = new URLSearchParams({
+          client,
           start_date: startDate,
           end_date: endDate,
           communities: leastSelectedCommunities.join(','),
-          limit: '50',
-          sort: 'asc', // Least clicked = ascending
         });
         
-        const response = await fetch(`/api/report/${encodeURIComponent(client)}/lots?${params}`);
+        const response = await fetch(`/api/lots?${params}`);
         if (response.ok) {
           const data = await response.json();
           // Filter out zeros and ensure ascending sort
           const filtered = (data.lots || []).filter((l: TopLot) => l.clicks > 0).sort((a: TopLot, b: TopLot) => a.clicks - b.clicks);
           setLeastLots(filtered);
+        } else {
+          // Fallback to filtering existing data locally
+          const filtered = defaultLots
+            .filter(lot => leastSelectedCommunities.includes(lot.community) && lot.clicks > 0)
+            .sort((a, b) => a.clicks - b.clicks);
+          setLeastLots(filtered);
         }
       } catch (error) {
         console.error('Failed to fetch filtered least lots:', error);
+        // Fallback to filtering existing data locally
+        const filtered = defaultLots
+          .filter(lot => leastSelectedCommunities.includes(lot.community) && lot.clicks > 0)
+          .sort((a, b) => a.clicks - b.clicks);
+        setLeastLots(filtered);
       } finally {
         setLeastLoading(false);
       }
@@ -2555,15 +2644,15 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
               <div className="flex-1 min-h-[280px]">
                 <ChoroplethMap data={countries} />
               </div>
-              <div className="pt-4 mt-auto">
-                <div className="flex items-center justify-center gap-3 text-xs text-slate-700">
-                  <span className="font-medium">Less</span>
+              <div className="pt-5 mt-auto">
+                <div className="flex items-center justify-center gap-4 text-sm text-slate-700">
+                  <span className="font-semibold">Low</span>
                   <div className="flex gap-1">
-                    {['#f1f5f9', '#e2e8f0', '#cbd5e1', '#94a3b8', '#64748b', '#4b5fd7'].map((color, i) => (
-                      <div key={i} className="w-3 h-3 rounded-sm" style={{ backgroundColor: color }} />
+                    {['#f8fafc', '#f1f5f9', '#e2e8f0', '#cbd5e1', '#94a3b8', '#64748b', '#4B5FD7', '#3730a3'].map((color, i) => (
+                      <div key={i} className="w-6 h-6 rounded-sm shadow-sm" style={{ backgroundColor: color }} />
                     ))}
                   </div>
-                  <span className="font-medium">More</span>
+                  <span className="font-semibold">High</span>
                 </div>
               </div>
             </>
@@ -2629,7 +2718,7 @@ function Sidebar({
               {/* MD3 Title Small: 14px, weight 500 */}
               <div className="text-slate-800" style={{ fontSize: '14px', lineHeight: '20px', fontWeight: 500 }}>LotWorks Insights</div>
               {/* MD3 Label Small: 11px, weight 500, tracking 0.5px */}
-              <div className="text-slate-500 uppercase" style={{ fontSize: '11px', lineHeight: '16px', fontWeight: 500, letterSpacing: '0.5px' }}>Website Market Report</div>
+              <div className="text-slate-500" style={{ fontSize: '11px', lineHeight: '16px', fontWeight: 500 }}>Website Market Report</div>
             </div>
           </div>
         )}
@@ -2670,15 +2759,46 @@ function Sidebar({
         })}
       </nav>
       
-      {/* Footer */}
-      {!collapsed && lastUpdated && (
-        <div className="p-4 border-t border-slate-100">
-          {/* MD3 Label Small: 11px, weight 500 */}
-          <div className="text-slate-500" style={{ fontSize: '11px', lineHeight: '16px', fontWeight: 500 }}>
-            Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </div>
+      {/* Footer section with collapse toggle */}
+      <div className="border-t border-slate-100 bg-slate-50/50">
+        {/* Collapse Toggle - styled like tab buttons */}
+        <div className="p-3">
+          <button
+            onClick={onToggleCollapse}
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group text-slate-600 hover:bg-slate-50 hover:text-slate-800"
+            title={collapsed ? 'Expand' : undefined}
+          >
+            <div className="p-2 rounded-lg transition-colors bg-slate-100 group-hover:bg-slate-200">
+              <Icon path={collapsed ? mdiChevronRight : mdiChevronLeft} size={1} color="#64748b" />
+            </div>
+            {!collapsed && (
+              <div className="flex-1 text-left">
+                <div style={{ fontSize: '14px', lineHeight: '20px', fontWeight: 500 }}>Collapse</div>
+              </div>
+            )}
+          </button>
         </div>
-      )}
+        
+        {/* Powered by section */}
+        <div className="px-4 py-3 border-t border-slate-100">
+          {!collapsed ? (
+            <div className="space-y-1">
+              <div className="text-xs text-slate-500">
+                Powered by <span className="font-semibold text-slate-700">LotWorks</span>
+              </div>
+              {lastUpdated && (
+                <div className="text-[10px] text-slate-400">
+                  Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center" title={lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : undefined}>
+              <Icon path={mdiClock} size={0.8} color="#94a3b8" />
+            </div>
+          )}
+        </div>
+      </div>
     </aside>
   );
 }
