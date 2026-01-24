@@ -43,7 +43,6 @@ import {
   mdiAccountArrowRight,
   mdiChartLineVariant,
   mdiFilterOutline,
-  mdiMedal,
   mdiChevronUp,
 } from '@mdi/js';
 import {
@@ -1888,22 +1887,12 @@ function MapDetailsContent({
   const [selectedCommunities, setSelectedCommunities] = useState<string[]>([]);
   const [lots, setLots] = useState<TopLot[]>(defaultLots);
   const [lotsLoading, setLotsLoading] = useState(false);
-  const [filterOpen, setFilterOpen] = useState(false);
-  const filterRef = useRef<HTMLDivElement>(null);
+  const [topFilterOpen, setTopFilterOpen] = useState(false);
+  const [leastFilterOpen, setLeastFilterOpen] = useState(false);
   
   const communityNames = useMemo(() => communityPerf.map(c => c.name), [communityPerf]);
   
-  // Close filter dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
-        setFilterOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-  
+  // Reset when client changes
   useEffect(() => {
     setSelectedCommunities([]);
     setLots(defaultLots);
@@ -1923,7 +1912,7 @@ function MapDetailsContent({
           start_date: startDate,
           end_date: endDate,
           communities: selectedCommunities.join(','),
-          limit: '50', // Always request 50 lots
+          limit: '100',
         });
         
         const response = await fetch(`/api/report/${encodeURIComponent(client)}/lots?${params}`);
@@ -1944,27 +1933,73 @@ function MapDetailsContent({
   const maxMapLoads = Math.max(...communityPerf.map(c => c.mapLoads), 1);
   const maxLotClicks = Math.max(...communityPerf.map(c => c.lotClicks), 1);
   
-  // Get least clicked lots (reverse of top lots, excluding zeros)
+  // Top clicked lots (sorted by most clicks)
+  const topClickedLots = useMemo(() => {
+    return [...lots].sort((a, b) => b.clicks - a.clicks);
+  }, [lots]);
+  
+  // Least clicked lots (sorted by fewest clicks, excluding zeros)
   const leastClickedLots = useMemo(() => {
     return [...lots]
       .filter(l => l.clicks > 0)
-      .sort((a, b) => a.clicks - b.clicks)
-      .slice(0, 50);
+      .sort((a, b) => a.clicks - b.clicks);
   }, [lots]);
+  
+  // Max clicks for gradient scaling
+  const maxClicks = Math.max(...lots.map(l => l.clicks), 1);
 
-  // Medal colors for top 3
-  const getMedalStyle = (index: number): { bg: string; text: string; icon: string } | null => {
-    if (index === 0) return { bg: 'bg-amber-100', text: 'text-amber-700', icon: '#d97706' }; // Gold
-    if (index === 1) return { bg: 'bg-slate-200', text: 'text-slate-600', icon: '#475569' }; // Silver
-    if (index === 2) return { bg: 'bg-orange-100', text: 'text-orange-700', icon: '#c2410c' }; // Bronze
+  // Rank badge colors for top 3
+  const getTopRankStyle = (index: number) => {
+    if (index === 0) return { bg: '#fef3c7', text: '#92400e' }; // Gold/Amber
+    if (index === 1) return { bg: '#e2e8f0', text: '#475569' }; // Silver/Slate
+    if (index === 2) return { bg: '#ffedd5', text: '#c2410c' }; // Bronze/Orange
     return null;
   };
 
-  // Community Filter Component
-  const CommunityFilter = (
-    <div className="relative" ref={filterRef}>
+  // Toggle community selection
+  const handleToggleCommunity = useCallback((name: string) => {
+    setSelectedCommunities(prev => 
+      prev.includes(name) ? prev.filter(c => c !== name) : [...prev, name]
+    );
+  }, []);
+
+  // Clear all selections
+  const handleClearFilter = useCallback(() => {
+    setSelectedCommunities([]);
+  }, []);
+
+  // Render rank with colored badges for top 3
+  const renderTopRank = (index: number) => {
+    const style = getTopRankStyle(index);
+    if (style) {
+      return (
+        <span 
+          className="inline-flex items-center justify-center w-7 h-7 rounded-full font-bold"
+          style={{ backgroundColor: style.bg, color: style.text, fontSize: '12px' }}
+        >
+          {index + 1}
+        </span>
+      );
+    }
+    return <span className="text-slate-500 font-medium">{index + 1}</span>;
+  };
+
+  // Get heatmap color for least clicked (red/orange scale)
+  const getLeastClickedColor = (clicks: number, max: number) => {
+    if (max === 0 || clicks === 0) return 'rgba(254, 202, 202, 0.5)';
+    const intensity = 1 - (clicks / max); // Inverse - lower clicks = more intense
+    const r = 254;
+    const g = Math.round(202 - (intensity * 80));
+    const b = Math.round(202 - (intensity * 80));
+    const alpha = 0.3 + (intensity * 0.4);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
+  // Filter dropdown JSX (inline, not a separate component)
+  const renderFilterDropdown = (isOpen: boolean, onToggle: () => void, tableId: string) => (
+    <div className="relative">
       <button
-        onClick={() => setFilterOpen(!filterOpen)}
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
         className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all"
         style={{ fontSize: '12px', lineHeight: '16px', fontWeight: 500 }}
       >
@@ -1972,72 +2007,62 @@ function MapDetailsContent({
         <span className={selectedCommunities.length > 0 ? 'text-[#4B5FD7]' : 'text-slate-600'}>
           {selectedCommunities.length > 0 ? `${selectedCommunities.length} selected` : 'Filter'}
         </span>
-        <Icon path={filterOpen ? mdiChevronUp : mdiChevronDown} size={0.65} color="#64748b" />
+        <Icon path={isOpen ? mdiChevronUp : mdiChevronDown} size={0.65} color="#64748b" />
       </button>
       
-      {filterOpen && (
-        <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl border border-slate-200 shadow-xl z-50 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-700" style={{ fontSize: '14px', fontWeight: 500 }}>Filter by Community</span>
-              {selectedCommunities.length > 0 && (
-                <button
-                  onClick={() => setSelectedCommunities([])}
-                  className="text-xs text-slate-500 hover:text-slate-700"
-                >
-                  Clear all
-                </button>
+      {isOpen && (
+        <>
+          {/* Backdrop to close dropdown */}
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
+          />
+          <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl border border-slate-200 shadow-xl z-50 overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-700" style={{ fontSize: '14px', fontWeight: 500 }}>Filter by Community</span>
+                {selectedCommunities.length > 0 && (
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleClearFilter(); }}
+                    className="text-xs text-slate-500 hover:text-slate-700"
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="max-h-64 overflow-y-auto p-2">
+              {communityNames.length === 0 ? (
+                <p className="text-slate-500 text-sm text-center py-4">No communities available</p>
+              ) : (
+                communityNames.map(name => {
+                  const isSelected = selectedCommunities.includes(name);
+                  return (
+                    <button
+                      key={name}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleToggleCommunity(name); }}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        isSelected ? 'bg-[#4B5FD7]/10' : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                        isSelected ? 'border-[#4B5FD7] bg-[#4B5FD7]' : 'border-slate-300'
+                      }`}>
+                        {isSelected && <Icon path={mdiCheck} size={0.6} color="white" />}
+                      </div>
+                      <span className={`text-sm truncate ${isSelected ? 'text-slate-800 font-medium' : 'text-slate-600'}`}>
+                        {name}
+                      </span>
+                    </button>
+                  );
+                })
               )}
             </div>
           </div>
-          <div className="max-h-64 overflow-y-auto p-2">
-            {communityNames.length === 0 ? (
-              <p className="text-slate-500 text-sm text-center py-4">No communities available</p>
-            ) : (
-              communityNames.map(name => {
-                const isSelected = selectedCommunities.includes(name);
-                return (
-                  <button
-                    key={name}
-                    onClick={() => {
-                      setSelectedCommunities(prev => 
-                        isSelected ? prev.filter(c => c !== name) : [...prev, name]
-                      );
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                      isSelected ? 'bg-[#4B5FD7]/10' : 'hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                      isSelected ? 'border-[#4B5FD7] bg-[#4B5FD7]' : 'border-slate-300'
-                    }`}>
-                      {isSelected && <Icon path={mdiCheck} size={0.6} color="white" />}
-                    </div>
-                    <span className={`text-sm truncate ${isSelected ? 'text-slate-800 font-medium' : 'text-slate-600'}`}>
-                      {name}
-                    </span>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
+        </>
       )}
     </div>
   );
-
-  // Render rank with medals for top 3
-  const renderRank = (index: number) => {
-    const medal = getMedalStyle(index);
-    if (medal) {
-      return (
-        <div className={`inline-flex items-center justify-center w-7 h-7 rounded-full ${medal.bg}`}>
-          <Icon path={mdiMedal} size={0.7} color={medal.icon} />
-        </div>
-      );
-    }
-    return <span className="text-slate-500 font-medium">{index + 1}</span>;
-  };
 
   return (
     <div className="space-y-6">
@@ -2101,17 +2126,17 @@ function MapDetailsContent({
       
       {/* Top Clicked Lots Table */}
       <DataTable<TopLot>
-        data={lots}
+        data={topClickedLots}
         title="Top Clicked Lots"
         subtitle={lotsLoading ? "Loading..." : selectedCommunities.length > 0 ? `Filtered by ${selectedCommunities.length} communities` : "Highest performing lots by click count"}
-        itemsPerPage={50}
-        filterComponent={CommunityFilter}
+        itemsPerPage={10}
+        filterComponent={renderFilterDropdown(topFilterOpen, () => { setTopFilterOpen(v => !v); setLeastFilterOpen(false); }, 'top')}
         columns={[
           {
             key: 'rank',
             label: '#',
             width: '60px',
-            render: (_, index) => renderRank(index)
+            render: (_, index) => renderTopRank(index)
           },
           {
             key: 'lot',
@@ -2133,7 +2158,7 @@ function MapDetailsContent({
             render: (item) => (
               <span 
                 className="inline-block px-2.5 py-1 rounded-md text-sm font-semibold"
-                style={{ backgroundColor: getHeatmapColor(item.clicks, Math.max(...lots.map(l => l.clicks), 1), 'green') }}
+                style={{ backgroundColor: getHeatmapColor(item.clicks, maxClicks, 'green') }}
               >
                 {item.clicks}
               </span>
@@ -2155,8 +2180,9 @@ function MapDetailsContent({
         <DataTable<TopLot>
           data={leastClickedLots}
           title="Least Clicked Lots"
-          subtitle="Lots with lowest engagement — potential opportunities for improvement"
+          subtitle={lotsLoading ? "Loading..." : selectedCommunities.length > 0 ? `Filtered by ${selectedCommunities.length} communities` : "Lots with lowest engagement — opportunities for improvement"}
           itemsPerPage={10}
+          filterComponent={renderFilterDropdown(leastFilterOpen, () => { setLeastFilterOpen(v => !v); setTopFilterOpen(false); }, 'least')}
           columns={[
             {
               key: 'rank',
@@ -2183,7 +2209,8 @@ function MapDetailsContent({
               sortable: true,
               render: (item) => (
                 <span 
-                  className="inline-block px-2.5 py-1 rounded-md text-sm font-semibold bg-slate-100 text-slate-700"
+                  className="inline-block px-2.5 py-1 rounded-md text-sm font-semibold"
+                  style={{ backgroundColor: getLeastClickedColor(item.clicks, maxClicks * 0.2) }}
                 >
                   {item.clicks}
                 </span>
