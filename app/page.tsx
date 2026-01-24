@@ -1071,7 +1071,12 @@ function MapDetailsContent({ report, client, startDate, endDate }: { report: Mar
     setSelectedCommunity(community);
     setLoadingLots(true);
     try {
-      const res = await fetch(`/api/reports/lots?client=${encodeURIComponent(client)}&community=${encodeURIComponent(community.name)}&start=${startDate}&end=${endDate}`);
+      const params = new URLSearchParams({
+        start_date: startDate,
+        end_date: endDate,
+        communities: community.name,
+      });
+      const res = await fetch(`/api/report/${encodeURIComponent(client)}/lots?${params}`);
       if (res.ok) {
         const data = await res.json();
         setCommunityLots(data.lots || []);
@@ -1353,13 +1358,25 @@ export default function InsightsPage() {
 
     try {
       const params = new URLSearchParams({
-        client: selectedClient,
-        start: formatDateToISO(startDate),
-        end: formatDateToISO(endDate),
+        start_date: formatDateToISO(startDate),
+        end_date: formatDateToISO(endDate),
       });
       
-      const res = await fetch(`/api/reports/market?${params}`);
-      if (!res.ok) throw new Error('Failed to fetch report');
+      const res = await fetch(`/api/report/${encodeURIComponent(selectedClient)}?${params}`);
+      
+      if (!res.ok) {
+        const statusText = res.statusText || 'Unknown error';
+        if (res.status === 404) {
+          throw new Error(`API endpoint not found (404). Check that /api/report/[client] exists.`);
+        } else if (res.status === 500) {
+          throw new Error(`Server error (500). The API encountered an internal error.`);
+        } else if (res.status === 401 || res.status === 403) {
+          throw new Error(`Authentication error (${res.status}). Please check your credentials.`);
+        } else {
+          throw new Error(`Request failed: ${res.status} ${statusText}`);
+        }
+      }
+      
       const data = await res.json();
 
       // Ensure minimum load time has passed for smooth UX
@@ -1380,7 +1397,13 @@ export default function InsightsPage() {
       if (elapsed < minLoadTime) {
         await new Promise(resolve => setTimeout(resolve, minLoadTime - elapsed));
       }
-      setError(e instanceof Error ? e.message : 'An error occurred');
+      
+      // Handle network errors specifically
+      if (e instanceof TypeError && e.message === 'Failed to fetch') {
+        setError('Network error. Please check your connection and try again.');
+      } else {
+        setError(e instanceof Error ? e.message : 'An unexpected error occurred');
+      }
     } finally {
       clearInterval(interval);
       setLoading(false);
@@ -1399,15 +1422,36 @@ export default function InsightsPage() {
     return (
       <div className="min-h-screen bg-[var(--md-sys-color-surface)] flex items-center justify-center p-4">
         <div className="md-card-outlined p-8 max-w-md w-full text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
-            <Icon path={mdiAlertCircle} size={2} className="text-red-600" />
+          {/* Error Icon */}
+          <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-[var(--md-sys-color-error-container)] flex items-center justify-center">
+            <Icon path={mdiAlertCircle} size={1.75} className="text-[var(--md-sys-color-error)]" />
           </div>
-          <h2 className="text-[var(--md-sys-typescale-title-large)] font-semibold text-[var(--md-sys-color-on-surface)] mb-2">Unable to Load Data</h2>
-          <p className="text-[var(--md-sys-typescale-body-medium)] text-[var(--md-sys-color-on-surface-variant)] mb-6">{error}</p>
-          <button onClick={fetchReport} className="md-button-filled gap-2">
-            <Icon path={mdiRefresh} size={0.875} />
-            Try Again
-          </button>
+          
+          {/* Title */}
+          <h2 className="text-[var(--md-sys-typescale-headline-small)] font-semibold text-[var(--md-sys-color-on-surface)] mb-2">
+            Unable to Load Data
+          </h2>
+          
+          {/* Error message */}
+          <p className="text-[var(--md-sys-typescale-body-medium)] text-[var(--md-sys-color-on-surface-variant)] mb-8">
+            {error}
+          </p>
+          
+          {/* Action buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button 
+              onClick={fetchReport} 
+              className="md-button-filled inline-flex items-center justify-center gap-2 min-w-[140px]"
+            >
+              <Icon path={mdiRefresh} size={0.875} />
+              <span>Try Again</span>
+            </button>
+          </div>
+          
+          {/* Help text */}
+          <p className="mt-6 text-[var(--md-sys-typescale-body-small)] text-[var(--md-sys-color-on-surface-variant)] opacity-70">
+            If this problem persists, please contact support.
+          </p>
         </div>
       </div>
     );
