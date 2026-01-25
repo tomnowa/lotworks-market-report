@@ -2744,7 +2744,7 @@ function Sidebar({
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`w-full flex items-center min-h-16 rounded-xl transition-all duration-200 group ${
+              className={`w-full flex items-center min-h-[60px] rounded-xl transition-all duration-200 group ${
                 collapsed ? 'justify-center px-2' : 'gap-3 px-3'
               } py-3 ${isActive ? 'text-slate-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'}`}
               style={isActive ? { backgroundColor: '#4B5FD715' } : {}}
@@ -2774,7 +2774,7 @@ function Sidebar({
         <div className="p-3">
           <button
             onClick={onToggleCollapse}
-            className={`w-full flex items-center min-h-16 rounded-xl transition-all duration-200 group text-slate-600 hover:bg-slate-50 hover:text-slate-800 ${
+            className={`w-full flex items-center min-h-[60px] rounded-xl transition-all duration-200 group text-slate-600 hover:bg-slate-50 hover:text-slate-800 ${
               collapsed ? 'justify-center px-2' : 'gap-3 px-3'
             } py-3`}
             title={collapsed ? 'Expand' : undefined}
