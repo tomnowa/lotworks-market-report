@@ -2706,7 +2706,9 @@ function Sidebar({
   lastUpdated: Date | null;
 }) {
   return (
-    <aside className={`bg-white border-r border-slate-200 flex flex-col transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
+    <aside
+      className={`bg-white border-r border-slate-200 flex flex-col overflow-hidden transition-[width] duration-300 ease-out ${collapsed ? 'w-16' : 'w-64'}`}
+    >
       {/* Sidebar Header */}
       <div className="h-16 border-b border-slate-100 flex items-center justify-between px-4">
         {!collapsed && (
@@ -2718,7 +2720,12 @@ function Sidebar({
               {/* MD3 Title Small: 14px, weight 500 */}
               <div className="text-slate-800" style={{ fontSize: '14px', lineHeight: '20px', fontWeight: 500 }}>LotWorks Insights</div>
               {/* MD3 Label Small: 11px, weight 500, tracking 0.5px */}
-              <div className="text-slate-500" style={{ fontSize: '11px', lineHeight: '16px', fontWeight: 500 }}>Website Market Report</div>
+              <div
+                className="text-slate-500 whitespace-nowrap"
+                style={{ fontSize: '11px', lineHeight: '16px', fontWeight: 500 }}
+              >
+                Website Market Report
+              </div>
             </div>
           </div>
         )}
@@ -2737,23 +2744,25 @@ function Sidebar({
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`w-full flex items-center min-h-16 gap-3 px-3 py-3 rounded-xl transition-all duration-200 group ${
-                isActive ? 'text-slate-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
-              }`}
+              className={`w-full flex items-center min-h-16 rounded-xl transition-all duration-200 group ${
+                collapsed ? 'justify-center px-2' : 'gap-3 px-3'
+              } py-3 ${isActive ? 'text-slate-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'}`}
               style={isActive ? { backgroundColor: '#4B5FD715' } : {}}
               title={collapsed ? tab.label : undefined}
             >
               <div className={`p-2 rounded-lg transition-colors ${isActive ? '' : 'bg-slate-100 group-hover:bg-slate-200'}`} style={isActive ? { backgroundColor: '#4B5FD720' } : {}}>
                 <Icon path={tab.icon} size={1} color={isActive ? '#4B5FD7' : '#64748b'} />
               </div>
-              {!collapsed && (
-                <div className="text-left">
-                  {/* MD3 Label Large: 14px, weight 500 */}
-                  <div style={{ fontSize: '14px', lineHeight: '20px', fontWeight: isActive ? 500 : 400 }}>{tab.label}</div>
-                  {/* MD3 Label Small: 11px */}
-                  <div className="text-slate-500" style={{ fontSize: '11px', lineHeight: '16px' }}>{tab.description}</div>
-                </div>
-              )}
+              <div
+                className={`text-left overflow-hidden transition-[max-width,opacity] duration-200 ease-out ${
+                  collapsed ? 'max-w-0 opacity-0' : 'max-w-[200px] opacity-100'
+                }`}
+              >
+                {/* MD3 Label Large: 14px, weight 500 */}
+                <div style={{ fontSize: '14px', lineHeight: '20px', fontWeight: isActive ? 500 : 400 }}>{tab.label}</div>
+                {/* MD3 Label Small: 11px */}
+                <div className="text-slate-500" style={{ fontSize: '11px', lineHeight: '16px' }}>{tab.description}</div>
+              </div>
             </button>
           );
         })}
@@ -2765,38 +2774,52 @@ function Sidebar({
         <div className="p-3">
           <button
             onClick={onToggleCollapse}
-            className="w-full flex items-center min-h-16 gap-3 px-3 py-3 rounded-xl transition-all duration-200 group text-slate-600 hover:bg-slate-50 hover:text-slate-800"
+            className={`w-full flex items-center min-h-16 rounded-xl transition-all duration-200 group text-slate-600 hover:bg-slate-50 hover:text-slate-800 ${
+              collapsed ? 'justify-center px-2' : 'gap-3 px-3'
+            } py-3`}
             title={collapsed ? 'Expand' : undefined}
           >
             <div className="p-2 rounded-lg transition-colors bg-slate-100 group-hover:bg-slate-200">
               <Icon path={collapsed ? mdiChevronRight : mdiChevronLeft} size={1} color="#64748b" />
             </div>
-            {!collapsed && (
-              <div className="flex-1 text-left">
-                <div style={{ fontSize: '14px', lineHeight: '20px', fontWeight: 500 }}>Collapse</div>
-              </div>
-            )}
+            <div
+              className={`flex-1 text-left overflow-hidden transition-[max-width,opacity] duration-200 ease-out ${
+                collapsed ? 'max-w-0 opacity-0' : 'max-w-[160px] opacity-100'
+              }`}
+            >
+              <div style={{ fontSize: '14px', lineHeight: '20px', fontWeight: 500 }}>Collapse</div>
+            </div>
           </button>
         </div>
         
         {/* Powered by section */}
         <div className="px-4 py-3 min-h-14 border-t border-slate-100">
-          {!collapsed ? (
-            <div className="space-y-1">
-              <div className="text-xs text-slate-500">
-                Powered by <span className="font-semibold text-slate-700">LotWorks</span>
-              </div>
-              {lastUpdated && (
-                <div className="text-[10px] text-slate-400">
-                  Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          <div className="flex items-center justify-center min-h-[44px]">
+            <div
+              className={`w-full transition-[max-width,opacity] duration-200 ease-out ${
+                collapsed ? 'max-w-0 opacity-0' : 'max-w-[220px] opacity-100'
+              }`}
+            >
+              <div className="space-y-1">
+                <div className="text-xs text-slate-500">
+                  Powered by <span className="font-semibold text-slate-700">LotWorks</span>
                 </div>
-              )}
+                {lastUpdated && (
+                  <div className="text-[10px] text-slate-400">
+                    Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                )}
+              </div>
             </div>
-          ) : (
-            <div className="text-center" title={lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : undefined}>
+            <div
+              className={`transition-opacity duration-200 ease-out ${
+                collapsed ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+              title={lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : undefined}
+            >
               <Icon path={mdiClock} size={0.8} color="#94a3b8" />
             </div>
-          )}
+          </div>
         </div>
       </div>
     </aside>
