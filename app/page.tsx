@@ -2744,7 +2744,7 @@ function Sidebar({
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`w-full flex items-center rounded-xl transition-all duration-200 group ${
+              className={`w-full flex items-center rounded-xl transition-all duration-200 group min-h-[56px] ${
                 collapsed ? 'justify-center px-2' : 'gap-3 px-3'
               } py-3 ${isActive ? 'text-slate-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'}`}
               style={isActive ? { backgroundColor: '#4B5FD715' } : {}}
@@ -2754,7 +2754,7 @@ function Sidebar({
                 <Icon path={tab.icon} size={1} color={isActive ? '#4B5FD7' : '#64748b'} />
               </div>
               <div
-                className={`text-left overflow-hidden transition-[max-width,opacity] duration-200 ease-out ${
+                className={`text-left overflow-hidden transition-[max-width,opacity] duration-200 ease-out flex flex-col justify-center ${
                   collapsed ? 'max-w-0 opacity-0' : 'max-w-[200px] opacity-100'
                 }`}
               >
@@ -2774,7 +2774,7 @@ function Sidebar({
         <div className="p-3">
           <button
             onClick={onToggleCollapse}
-            className={`w-full flex items-center rounded-xl transition-all duration-200 group text-slate-600 hover:bg-slate-50 hover:text-slate-800 ${
+            className={`w-full flex items-center rounded-xl transition-all duration-200 group text-slate-600 hover:bg-slate-50 hover:text-slate-800 min-h-[56px] ${
               collapsed ? 'justify-center px-2' : 'gap-3 px-3'
             } py-3`}
             title={collapsed ? 'Expand' : undefined}
@@ -2783,7 +2783,7 @@ function Sidebar({
               <Icon path={collapsed ? mdiChevronRight : mdiChevronLeft} size={1} color="#64748b" />
             </div>
             <div
-              className={`flex-1 text-left overflow-hidden transition-[max-width,opacity] duration-200 ease-out ${
+              className={`flex-1 text-left overflow-hidden transition-[max-width,opacity] duration-200 ease-out flex items-center ${
                 collapsed ? 'max-w-0 opacity-0' : 'max-w-[160px] opacity-100'
               }`}
             >
