@@ -2744,18 +2744,16 @@ function Sidebar({
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`w-full flex items-center min-h-[60px] rounded-xl transition-all duration-200 group ${
-                collapsed ? 'justify-center px-2' : 'gap-3 px-3'
-              } py-3 ${isActive ? 'text-slate-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'}`}
+              className={`w-full flex items-center gap-3 px-3 py-3 min-h-[60px] rounded-xl transition-all duration-200 group ${isActive ? 'text-slate-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'}`}
               style={isActive ? { backgroundColor: '#4B5FD715' } : {}}
               title={collapsed ? tab.label : undefined}
             >
-              <div className={`p-2 rounded-lg transition-colors ${isActive ? '' : 'bg-slate-100 group-hover:bg-slate-200'}`} style={isActive ? { backgroundColor: '#4B5FD720' } : {}}>
+              <div className={`flex-shrink-0 p-2 rounded-lg transition-colors ${isActive ? '' : 'bg-slate-100 group-hover:bg-slate-200'}`} style={isActive ? { backgroundColor: '#4B5FD720' } : {}}>
                 <Icon path={tab.icon} size={1} color={isActive ? '#4B5FD7' : '#64748b'} />
               </div>
               <div
-                className={`text-left overflow-hidden transition-[max-width,opacity] duration-200 ease-out ${
-                  collapsed ? 'max-w-0 opacity-0' : 'max-w-[200px] opacity-100'
+                className={`flex-1 min-w-0 text-left overflow-hidden transition-opacity duration-200 ease-out ${
+                  collapsed ? 'opacity-0 invisible' : 'opacity-100'
                 }`}
               >
                 {/* MD3 Label Large: 14px, weight 500 */}
@@ -2774,17 +2772,15 @@ function Sidebar({
         <div className="p-3">
           <button
             onClick={onToggleCollapse}
-            className={`w-full flex items-center min-h-[60px] rounded-xl transition-all duration-200 group text-slate-600 hover:bg-slate-50 hover:text-slate-800 ${
-              collapsed ? 'justify-center px-2' : 'gap-3 px-3'
-            } py-3`}
+            className="w-full flex items-center gap-3 px-3 py-3 min-h-[60px] rounded-xl transition-all duration-200 group text-slate-600 hover:bg-slate-50 hover:text-slate-800"
             title={collapsed ? 'Expand' : undefined}
           >
-            <div className="p-2 rounded-lg transition-colors bg-slate-100 group-hover:bg-slate-200">
+            <div className="flex-shrink-0 p-2 rounded-lg transition-colors bg-slate-100 group-hover:bg-slate-200">
               <Icon path={collapsed ? mdiChevronRight : mdiChevronLeft} size={1} color="#64748b" />
             </div>
             <div
-              className={`flex-1 text-left overflow-hidden transition-[max-width,opacity] duration-200 ease-out ${
-                collapsed ? 'max-w-0 opacity-0' : 'max-w-[160px] opacity-100'
+              className={`flex-1 min-w-0 text-left overflow-hidden transition-opacity duration-200 ease-out ${
+                collapsed ? 'opacity-0 invisible' : 'opacity-100'
               }`}
             >
               <div style={{ fontSize: '14px', lineHeight: '20px', fontWeight: 500 }}>Collapse</div>
@@ -2796,8 +2792,8 @@ function Sidebar({
         <div className="px-4 py-3 min-h-14 border-t border-slate-100">
           <div className="flex items-center justify-center min-h-[44px]">
             <div
-              className={`w-full transition-[max-width,opacity] duration-200 ease-out ${
-                collapsed ? 'max-w-0 opacity-0' : 'max-w-[220px] opacity-100'
+              className={`flex-1 min-w-0 transition-opacity duration-200 ease-out ${
+                collapsed ? 'opacity-0 invisible' : 'opacity-100'
               }`}
             >
               <div className="space-y-1">
