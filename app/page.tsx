@@ -1400,8 +1400,8 @@ function DateRangePicker({
   disabled?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [tempStart, setTempStart] = useState(startDate);
-  const [tempEnd, setTempEnd] = useState(endDate);
+  const [tempStart, setTempStart] = useState(() => formatDateToISO(startDate));
+  const [tempEnd, setTempEnd] = useState(() => formatDateToISO(endDate));
   
   const presets = [
     { label: 'Last 7 days', days: 7 },
@@ -1434,18 +1434,30 @@ function DateRangePicker({
     setIsOpen(false);
   };
   
+  const parseDateInput = (value: string) => {
+    if (!value) return null;
+    const parsed = new Date(`${value}T00:00:00`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const parsedStart = parseDateInput(tempStart);
+  const parsedEnd = parseDateInput(tempEnd);
+  const shouldSwap = parsedStart && parsedEnd ? parsedStart > parsedEnd : false;
+
   const handleApply = () => {
-    if (tempStart > tempEnd) {
-      onChange(tempEnd, tempStart);
-    } else {
-      onChange(tempStart, tempEnd);
+    if (!parsedStart || !parsedEnd) {
+      setIsOpen(false);
+      return;
     }
+    const nextStart = shouldSwap ? parsedEnd : parsedStart;
+    const nextEnd = shouldSwap ? parsedStart : parsedEnd;
+    onChange(nextStart, nextEnd);
     setIsOpen(false);
   };
 
   const handleOpen = () => {
-    setTempStart(startDate);
-    setTempEnd(endDate);
+    setTempStart(formatDateToISO(startDate));
+    setTempEnd(formatDateToISO(endDate));
     setIsOpen(true);
   };
   
@@ -1486,8 +1498,8 @@ function DateRangePicker({
                 <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Start Date</label>
                 <input
                   type="date"
-                  value={formatDateToISO(tempStart)}
-                  onChange={(e) => setTempStart(new Date(e.target.value + 'T00:00:00'))}
+                  value={tempStart}
+                  onChange={(e) => setTempStart(e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                 />
               </div>
@@ -1495,12 +1507,12 @@ function DateRangePicker({
                 <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">End Date</label>
                 <input
                   type="date"
-                  value={formatDateToISO(tempEnd)}
-                  onChange={(e) => setTempEnd(new Date(e.target.value + 'T00:00:00'))}
+                  value={tempEnd}
+                  onChange={(e) => setTempEnd(e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                 />
               </div>
-              {tempStart > tempEnd && (
+              {shouldSwap && (
                 <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
                   <Icon path={mdiInformation} size={0.7} />
                   Dates will be swapped automatically
