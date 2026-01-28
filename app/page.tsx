@@ -2375,10 +2375,10 @@ function MapDetailsContent({
             render: (item) => <span className="text-slate-600">{(item as any).status || '—'}</span>
           },
           {
-            key: 'productType',
-            label: 'Product Type',
+            key: 'builder',
+            label: 'Builder',
             sortable: true,
-            render: (item) => <span className="text-slate-600">{(item as any).productType || '—'}</span>
+            render: (item) => <span className="text-slate-600">{(item as any).builder || '—'}</span>
           },
           {
             key: 'lotType',
@@ -2387,18 +2387,18 @@ function MapDetailsContent({
             render: (item) => <span className="text-slate-600">{(item as any).lotType || '—'}</span>
           },
           {
+            key: 'productType',
+            label: 'Product Type',
+            sortable: true,
+            render: (item) => <span className="text-slate-600">{(item as any).productType || '—'}</span>
+          },       
+          {
             key: 'frontage',
             label: 'Frontage (ft)',
             align: 'right',
             sortable: true,
             render: (item) => <span className="text-slate-600">{(item as any).frontage || '—'}</span>
-          },
-          {
-            key: 'builder',
-            label: 'Builder',
-            sortable: true,
-            render: (item) => <span className="text-slate-600">{(item as any).builder || '—'}</span>
-          },
+          },          
           {
             key: 'clicks',
             label: 'Clicks',
@@ -2473,10 +2473,10 @@ function MapDetailsContent({
               render: (item) => <span className="text-slate-600">{(item as any).status || '—'}</span>
             },
             {
-              key: 'productType',
-              label: 'Product Type',
+              key: 'builder',
+              label: 'Builder',
               sortable: true,
-              render: (item) => <span className="text-slate-600">{(item as any).productType || '—'}</span>
+              render: (item) => <span className="text-slate-600">{(item as any).builder || '—'}</span>
             },
             {
               key: 'lotType',
@@ -2485,18 +2485,18 @@ function MapDetailsContent({
               render: (item) => <span className="text-slate-600">{(item as any).lotType || '—'}</span>
             },
             {
+              key: 'productType',
+              label: 'Product Type',
+              sortable: true,
+              render: (item) => <span className="text-slate-600">{(item as any).productType || '—'}</span>
+            },            
+            {
               key: 'frontage',
               label: 'Frontage (ft)',
               align: 'right',
               sortable: true,
               render: (item) => <span className="text-slate-600">{(item as any).frontage || '—'}</span>
-            },
-            {
-              key: 'builder',
-              label: 'Builder',
-              sortable: true,
-              render: (item) => <span className="text-slate-600">{(item as any).builder || '—'}</span>
-            },
+            },           
             {
               key: 'clicks',
               label: 'Clicks',
