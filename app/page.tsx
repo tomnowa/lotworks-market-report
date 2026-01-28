@@ -44,6 +44,7 @@ import {
   mdiChartLineVariant,
   mdiFilterOutline,
   mdiChevronUp,
+  mdiOpenInNew,
 } from '@mdi/js';
 import {
   LineChart,
@@ -2245,6 +2246,21 @@ function MapDetailsContent({
         title="Community Performance"
         subtitle="All communities ranked by activity"
         columns={[
+          {
+            key: 'mapLink',
+            label: '',
+            width: '48px',
+            render: (item) => (
+              <a 
+                href="#"
+                onClick={(e) => e.preventDefault()}
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-[#4B5FD7] hover:bg-[#4B5FD7]/10 transition-all duration-200"
+                title={`View ${item.name} map`}
+              >
+                <Icon path={mdiOpenInNew} size={0.85} />
+              </a>
+            )
+          },
           {
             key: 'name',
             label: 'Community',
