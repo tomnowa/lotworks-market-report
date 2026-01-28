@@ -1614,6 +1614,8 @@ function DataTable<T>({
     sortable?: boolean; 
     align?: 'left' | 'right' | 'center';
     width?: string;
+    minWidth?: number;
+    group?: string;
   }[];
   title: string;
   subtitle?: string;
@@ -1623,6 +1625,50 @@ function DataTable<T>({
   const [page, setPage] = useState(0);
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  
+  // Column resizing state
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  const [resizing, setResizing] = useState<{ key: string; startX: number; startWidth: number } | null>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const headerRefs = useRef<Record<string, HTMLTableCellElement | null>>({});
+  
+  // Initialize column widths from actual rendered widths
+  useEffect(() => {
+    if (tableRef.current && Object.keys(columnWidths).length === 0) {
+      const widths: Record<string, number> = {};
+      columns.forEach(col => {
+        const header = headerRefs.current[col.key];
+        if (header) {
+          widths[col.key] = header.offsetWidth;
+        }
+      });
+      if (Object.keys(widths).length > 0) {
+        setColumnWidths(widths);
+      }
+    }
+  }, [columns, data]);
+  
+  // Handle resize drag
+  useEffect(() => {
+    if (!resizing) return;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = e.clientX - resizing.startX;
+      const newWidth = Math.max(resizing.startWidth + delta, columns.find(c => c.key === resizing.key)?.minWidth || 60);
+      setColumnWidths(prev => ({ ...prev, [resizing.key]: newWidth }));
+    };
+    
+    const handleMouseUp = () => {
+      setResizing(null);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizing, columns]);
   
   useEffect(() => {
     setPage(0);
@@ -1654,6 +1700,28 @@ function DataTable<T>({
     }
     setPage(0);
   };
+  
+  const startResize = (key: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const header = headerRefs.current[key];
+    if (header) {
+      setResizing({ key, startX: e.clientX, startWidth: header.offsetWidth });
+    }
+  };
+  
+  // Determine group boundaries for visual separators
+  const groupBoundaries = useMemo(() => {
+    const boundaries: Set<number> = new Set();
+    let lastGroup: string | undefined;
+    columns.forEach((col, idx) => {
+      if (col.group && col.group !== lastGroup && lastGroup !== undefined) {
+        boundaries.add(idx);
+      }
+      lastGroup = col.group;
+    });
+    return boundaries;
+  }, [columns]);
   
   if (data.length === 0) {
     return (
@@ -1695,53 +1763,79 @@ function DataTable<T>({
       </div>
       
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table ref={tableRef} className="w-full" style={{ tableLayout: 'fixed' }}>
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/30">
-              {columns.map(col => (
-                <th
-                  key={col.key}
-                  style={{ 
-                    width: col.width,
-                    fontSize: '11px',
-                    lineHeight: '16px',
-                    fontWeight: 500,
-                    letterSpacing: '0.5px',
-                  }}
-                  className={`px-4 py-3 uppercase ${
-                    col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
-                  } ${col.sortable ? 'cursor-pointer hover:bg-slate-100 select-none transition-colors' : ''} text-slate-500`}
-                  onClick={() => col.sortable && handleSort(col.key)}
-                >
-                  <div className={`flex items-center gap-1.5 ${col.align === 'right' ? 'justify-end' : ''}`}>
-                    {col.label}
-                    {col.sortable && (
-                      <Icon path={mdiArrowUpDown} size={0.7} color={sortKey === col.key ? '#4B5FD7' : '#cbd5e1'} />
-                    )}
-                  </div>
-                </th>
-              ))}
+              {columns.map((col, idx) => {
+                const isGroupBoundary = groupBoundaries.has(idx);
+                const width = columnWidths[col.key] || col.width;
+                
+                return (
+                  <th
+                    key={col.key}
+                    ref={(el) => { headerRefs.current[col.key] = el; }}
+                    style={{ 
+                      width: typeof width === 'number' ? `${width}px` : width,
+                      minWidth: col.minWidth || 60,
+                      fontSize: '11px',
+                      lineHeight: '16px',
+                      fontWeight: 500,
+                      letterSpacing: '0.5px',
+                      position: 'relative',
+                    }}
+                    className={`px-4 py-3 uppercase ${
+                      col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
+                    } ${col.sortable ? 'cursor-pointer hover:bg-slate-100 select-none transition-colors' : ''} text-slate-500 ${
+                      isGroupBoundary ? 'border-l-2 border-slate-200' : ''
+                    }`}
+                    onClick={() => col.sortable && handleSort(col.key)}
+                  >
+                    <div className={`flex items-center gap-1.5 ${col.align === 'right' ? 'justify-end' : ''}`}>
+                      {col.label}
+                      {col.sortable && (
+                        <Icon path={mdiArrowUpDown} size={0.7} color={sortKey === col.key ? '#4B5FD7' : '#cbd5e1'} />
+                      )}
+                    </div>
+                    {/* Resize handle */}
+                    <div
+                      className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#4B5FD7]/30 group"
+                      onMouseDown={(e) => startResize(col.key, e)}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-slate-300 group-hover:bg-[#4B5FD7] transition-colors" />
+                    </div>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
             {pageData.map((item, index) => (
               <tr key={index} className="hover:bg-slate-50/50 transition-colors">
-                {columns.map(col => (
-                  <td
-                    key={col.key}
-                    style={{ fontSize: '14px', lineHeight: '20px' }}
-                    className={`px-4 py-3.5 ${
-                      col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
-                    }`}
-                  >
-                    {col.render ? col.render(item, page * itemsPerPage + index) : String((item as Record<string, unknown>)[col.key] ?? '')}
-                  </td>
-                ))}
+                {columns.map((col, idx) => {
+                  const isGroupBoundary = groupBoundaries.has(idx);
+                  return (
+                    <td
+                      key={col.key}
+                      style={{ fontSize: '14px', lineHeight: '20px' }}
+                      className={`px-4 py-3.5 ${
+                        col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
+                      } ${isGroupBoundary ? 'border-l-2 border-slate-100' : ''}`}
+                    >
+                      {col.render ? col.render(item, page * itemsPerPage + index) : String((item as Record<string, unknown>)[col.key] ?? '')}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      
+      {/* Resize cursor overlay */}
+      {resizing && (
+        <div className="fixed inset-0 cursor-col-resize z-50" />
+      )}
       
       {totalPages > 1 && (
         <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/30 flex items-center justify-between">
@@ -2345,6 +2439,7 @@ function MapDetailsContent({
             key: 'lotLink',
             label: '',
             width: '48px',
+            group: 'identity',
             render: (item) => (
               <a 
                 href="#"
@@ -2360,36 +2455,47 @@ function MapDetailsContent({
             key: 'rank',
             label: '#',
             width: '60px',
+            group: 'identity',
             render: (_, index) => renderTopRank(index)
           },
           {
             key: 'lot',
             label: 'Lot',
             sortable: true,
+            group: 'identity',
+            minWidth: 120,
             render: (item) => <span className="font-medium text-slate-800">{item.lot}</span>
           },
           {
             key: 'status',
             label: 'Status',
             sortable: true,
+            group: 'lotInfo',
+            minWidth: 80,
             render: (item) => <span className="text-slate-600">{(item as any).status || '—'}</span>
           },
           {
             key: 'builder',
             label: 'Builder',
             sortable: true,
+            group: 'lotInfo',
+            minWidth: 100,
             render: (item) => <span className="text-slate-600">{(item as any).builder || '—'}</span>
           },
           {
             key: 'lotType',
             label: 'Lot Type',
             sortable: true,
+            group: 'lotInfo',
+            minWidth: 80,
             render: (item) => <span className="text-slate-600">{(item as any).lotType || '—'}</span>
           },
           {
             key: 'productType',
             label: 'Product Type',
             sortable: true,
+            group: 'lotInfo',
+            minWidth: 100,
             render: (item) => <span className="text-slate-600">{(item as any).productType || '—'}</span>
           },       
           {
@@ -2397,6 +2503,8 @@ function MapDetailsContent({
             label: 'Frontage (ft)',
             align: 'right',
             sortable: true,
+            group: 'lotInfo',
+            minWidth: 90,
             render: (item) => <span className="text-slate-600">{(item as any).frontage || '—'}</span>
           },          
           {
@@ -2404,6 +2512,8 @@ function MapDetailsContent({
             label: 'Clicks',
             align: 'right',
             sortable: true,
+            group: 'analytics',
+            minWidth: 80,
             render: (item) => (
               <span 
                 className="inline-block px-2.5 py-1 rounded-md text-sm font-semibold"
@@ -2419,6 +2529,8 @@ function MapDetailsContent({
             align: 'right',
             sortable: true,
             width: '80px',
+            group: 'analytics',
+            minWidth: 70,
             render: (item) => <span className="text-slate-600">{item.share}%</span>
           }
         ]}
@@ -2443,6 +2555,7 @@ function MapDetailsContent({
               key: 'lotLink',
               label: '',
               width: '48px',
+              group: 'identity',
               render: (item) => (
                 <a 
                   href="#"
@@ -2458,36 +2571,47 @@ function MapDetailsContent({
               key: 'rank',
               label: '#',
               width: '60px',
+              group: 'identity',
               render: (_, index) => renderLeastRank(index)
             },
             {
               key: 'lot',
               label: 'Lot',
               sortable: true,
+              group: 'identity',
+              minWidth: 120,
               render: (item) => <span className="font-medium text-slate-800">{item.lot}</span>
             },
             {
               key: 'status',
               label: 'Status',
               sortable: true,
+              group: 'lotInfo',
+              minWidth: 80,
               render: (item) => <span className="text-slate-600">{(item as any).status || '—'}</span>
             },
             {
               key: 'builder',
               label: 'Builder',
               sortable: true,
+              group: 'lotInfo',
+              minWidth: 100,
               render: (item) => <span className="text-slate-600">{(item as any).builder || '—'}</span>
             },
             {
               key: 'lotType',
               label: 'Lot Type',
               sortable: true,
+              group: 'lotInfo',
+              minWidth: 80,
               render: (item) => <span className="text-slate-600">{(item as any).lotType || '—'}</span>
             },
             {
               key: 'productType',
               label: 'Product Type',
               sortable: true,
+              group: 'lotInfo',
+              minWidth: 100,
               render: (item) => <span className="text-slate-600">{(item as any).productType || '—'}</span>
             },            
             {
@@ -2495,6 +2619,8 @@ function MapDetailsContent({
               label: 'Frontage (ft)',
               align: 'right',
               sortable: true,
+              group: 'lotInfo',
+              minWidth: 90,
               render: (item) => <span className="text-slate-600">{(item as any).frontage || '—'}</span>
             },           
             {
@@ -2502,6 +2628,8 @@ function MapDetailsContent({
               label: 'Clicks',
               align: 'right',
               sortable: true,
+              group: 'analytics',
+              minWidth: 80,
               render: (item) => (
                 <span 
                   className="inline-block px-2.5 py-1 rounded-md text-sm font-semibold"
@@ -2517,6 +2645,8 @@ function MapDetailsContent({
               align: 'right',
               sortable: true,
               width: '80px',
+              group: 'analytics',
+              minWidth: 70,
               render: (item) => <span className="text-slate-600">{item.share}%</span>
             }
           ]}
