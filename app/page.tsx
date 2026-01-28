@@ -1615,6 +1615,7 @@ function DataTable<T>({
     align?: 'left' | 'right' | 'center';
     width?: string;
     minWidth?: number;
+    maxWidth?: number;
     group?: string;
   }[];
   title: string;
@@ -1630,7 +1631,44 @@ function DataTable<T>({
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const [resizing, setResizing] = useState<{ key: string; startX: number; startWidth: number } | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const headerRefs = useRef<Record<string, HTMLTableCellElement | null>>({});
+  const [containerWidth, setContainerWidth] = useState(0);
+  
+  // Track container width for max calculations
+  useEffect(() => {
+    const updateContainerWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth);
+      }
+    };
+    
+    updateContainerWidth();
+    window.addEventListener('resize', updateContainerWidth);
+    return () => window.removeEventListener('resize', updateContainerWidth);
+  }, []);
+  
+  // Calculate dynamic max width per column to prevent horizontal scroll
+  const getMaxWidth = useCallback((col: typeof columns[0]) => {
+    if (col.maxWidth) return col.maxWidth;
+    if (!containerWidth) return 400; // Default fallback
+    
+    // Calculate total fixed width (columns with explicit width)
+    const fixedWidth = columns.reduce((sum, c) => {
+      if (c.width) {
+        const w = parseInt(c.width);
+        return sum + (isNaN(w) ? 0 : w);
+      }
+      return sum;
+    }, 0);
+    
+    // Flexible columns share remaining space
+    const flexibleColumns = columns.filter(c => !c.width);
+    const availableWidth = containerWidth - fixedWidth - 32; // 32px for padding
+    const maxPerFlexColumn = Math.floor(availableWidth / Math.max(flexibleColumns.length, 1));
+    
+    return Math.max(maxPerFlexColumn, col.minWidth || 80);
+  }, [containerWidth, columns]);
   
   // Initialize column widths from actual rendered widths
   useEffect(() => {
@@ -1648,13 +1686,17 @@ function DataTable<T>({
     }
   }, [columns, data]);
   
-  // Handle resize drag
+  // Handle resize drag with min/max constraints
   useEffect(() => {
     if (!resizing) return;
     
+    const col = columns.find(c => c.key === resizing.key);
+    const minW = col?.minWidth || 60;
+    const maxW = getMaxWidth(col!);
+    
     const handleMouseMove = (e: MouseEvent) => {
       const delta = e.clientX - resizing.startX;
-      const newWidth = Math.max(resizing.startWidth + delta, columns.find(c => c.key === resizing.key)?.minWidth || 60);
+      const newWidth = Math.min(Math.max(resizing.startWidth + delta, minW), maxW);
       setColumnWidths(prev => ({ ...prev, [resizing.key]: newWidth }));
     };
     
@@ -1668,7 +1710,7 @@ function DataTable<T>({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [resizing, columns]);
+  }, [resizing, columns, getMaxWidth]);
   
   useEffect(() => {
     setPage(0);
@@ -1743,7 +1785,7 @@ function DataTable<T>({
   }
   
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div ref={containerRef} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
         <div className="flex items-center justify-between">
           <div>
@@ -1762,13 +1804,14 @@ function DataTable<T>({
         </div>
       </div>
       
-      <div className="overflow-x-auto">
+      <div className="overflow-hidden">
         <table ref={tableRef} className="w-full" style={{ tableLayout: 'fixed' }}>
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/30">
               {columns.map((col, idx) => {
                 const isGroupBoundary = groupBoundaries.has(idx);
                 const width = columnWidths[col.key] || col.width;
+                const maxW = getMaxWidth(col);
                 
                 return (
                   <th
@@ -1777,13 +1820,14 @@ function DataTable<T>({
                     style={{ 
                       width: typeof width === 'number' ? `${width}px` : width,
                       minWidth: col.minWidth || 60,
+                      maxWidth: maxW,
                       fontSize: '11px',
                       lineHeight: '16px',
                       fontWeight: 500,
                       letterSpacing: '0.5px',
                       position: 'relative',
                     }}
-                    className={`px-4 py-3 uppercase ${
+                    className={`px-4 py-3 uppercase whitespace-nowrap ${
                       col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
                     } ${col.sortable ? 'cursor-pointer hover:bg-slate-100 select-none transition-colors' : ''} text-slate-500 ${
                       isGroupBoundary ? 'border-l-2 border-slate-200' : ''
@@ -1814,11 +1858,16 @@ function DataTable<T>({
               <tr key={index} className="hover:bg-slate-50/50 transition-colors">
                 {columns.map((col, idx) => {
                   const isGroupBoundary = groupBoundaries.has(idx);
+                  const maxW = getMaxWidth(col);
                   return (
                     <td
                       key={col.key}
-                      style={{ fontSize: '14px', lineHeight: '20px' }}
-                      className={`px-4 py-3.5 ${
+                      style={{ 
+                        fontSize: '14px', 
+                        lineHeight: '20px',
+                        maxWidth: maxW,
+                      }}
+                      className={`px-4 py-3.5 whitespace-nowrap overflow-hidden text-ellipsis ${
                         col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
                       } ${isGroupBoundary ? 'border-l-2 border-slate-100' : ''}`}
                     >
@@ -2440,6 +2489,7 @@ function MapDetailsContent({
             label: '',
             width: '48px',
             group: 'identity',
+            maxWidth: 48,
             render: (item) => (
               <a 
                 href="#"
@@ -2456,6 +2506,7 @@ function MapDetailsContent({
             label: '#',
             width: '60px',
             group: 'identity',
+            maxWidth: 60,
             render: (_, index) => renderTopRank(index)
           },
           {
@@ -2463,7 +2514,8 @@ function MapDetailsContent({
             label: 'Lot',
             sortable: true,
             group: 'identity',
-            minWidth: 120,
+            minWidth: 140,
+            maxWidth: 220,
             render: (item) => <span className="font-medium text-slate-800">{item.lot}</span>
           },
           {
@@ -2471,7 +2523,8 @@ function MapDetailsContent({
             label: 'Status',
             sortable: true,
             group: 'lotInfo',
-            minWidth: 80,
+            minWidth: 90,
+            maxWidth: 130,
             render: (item) => <span className="text-slate-600">{(item as any).status || '—'}</span>
           },
           {
@@ -2480,6 +2533,7 @@ function MapDetailsContent({
             sortable: true,
             group: 'lotInfo',
             minWidth: 100,
+            maxWidth: 180,
             render: (item) => <span className="text-slate-600">{(item as any).builder || '—'}</span>
           },
           {
@@ -2487,7 +2541,8 @@ function MapDetailsContent({
             label: 'Lot Type',
             sortable: true,
             group: 'lotInfo',
-            minWidth: 80,
+            minWidth: 90,
+            maxWidth: 130,
             render: (item) => <span className="text-slate-600">{(item as any).lotType || '—'}</span>
           },
           {
@@ -2495,7 +2550,8 @@ function MapDetailsContent({
             label: 'Product Type',
             sortable: true,
             group: 'lotInfo',
-            minWidth: 100,
+            minWidth: 110,
+            maxWidth: 160,
             render: (item) => <span className="text-slate-600">{(item as any).productType || '—'}</span>
           },       
           {
@@ -2504,7 +2560,8 @@ function MapDetailsContent({
             align: 'right',
             sortable: true,
             group: 'lotInfo',
-            minWidth: 90,
+            minWidth: 105,
+            maxWidth: 130,
             render: (item) => <span className="text-slate-600">{(item as any).frontage || '—'}</span>
           },          
           {
@@ -2514,6 +2571,7 @@ function MapDetailsContent({
             sortable: true,
             group: 'analytics',
             minWidth: 80,
+            maxWidth: 110,
             render: (item) => (
               <span 
                 className="inline-block px-2.5 py-1 rounded-md text-sm font-semibold"
@@ -2530,7 +2588,8 @@ function MapDetailsContent({
             sortable: true,
             width: '80px',
             group: 'analytics',
-            minWidth: 70,
+            minWidth: 75,
+            maxWidth: 100,
             render: (item) => <span className="text-slate-600">{item.share}%</span>
           }
         ]}
@@ -2556,6 +2615,7 @@ function MapDetailsContent({
               label: '',
               width: '48px',
               group: 'identity',
+              maxWidth: 48,
               render: (item) => (
                 <a 
                   href="#"
@@ -2572,6 +2632,7 @@ function MapDetailsContent({
               label: '#',
               width: '60px',
               group: 'identity',
+              maxWidth: 60,
               render: (_, index) => renderLeastRank(index)
             },
             {
@@ -2579,7 +2640,8 @@ function MapDetailsContent({
               label: 'Lot',
               sortable: true,
               group: 'identity',
-              minWidth: 120,
+              minWidth: 140,
+              maxWidth: 220,
               render: (item) => <span className="font-medium text-slate-800">{item.lot}</span>
             },
             {
@@ -2587,7 +2649,8 @@ function MapDetailsContent({
               label: 'Status',
               sortable: true,
               group: 'lotInfo',
-              minWidth: 80,
+              minWidth: 90,
+              maxWidth: 130,
               render: (item) => <span className="text-slate-600">{(item as any).status || '—'}</span>
             },
             {
@@ -2596,6 +2659,7 @@ function MapDetailsContent({
               sortable: true,
               group: 'lotInfo',
               minWidth: 100,
+              maxWidth: 180,
               render: (item) => <span className="text-slate-600">{(item as any).builder || '—'}</span>
             },
             {
@@ -2603,7 +2667,8 @@ function MapDetailsContent({
               label: 'Lot Type',
               sortable: true,
               group: 'lotInfo',
-              minWidth: 80,
+              minWidth: 90,
+              maxWidth: 130,
               render: (item) => <span className="text-slate-600">{(item as any).lotType || '—'}</span>
             },
             {
@@ -2611,7 +2676,8 @@ function MapDetailsContent({
               label: 'Product Type',
               sortable: true,
               group: 'lotInfo',
-              minWidth: 100,
+              minWidth: 110,
+              maxWidth: 160,
               render: (item) => <span className="text-slate-600">{(item as any).productType || '—'}</span>
             },            
             {
@@ -2620,7 +2686,8 @@ function MapDetailsContent({
               align: 'right',
               sortable: true,
               group: 'lotInfo',
-              minWidth: 90,
+              minWidth: 105,
+              maxWidth: 130,
               render: (item) => <span className="text-slate-600">{(item as any).frontage || '—'}</span>
             },           
             {
@@ -2630,6 +2697,7 @@ function MapDetailsContent({
               sortable: true,
               group: 'analytics',
               minWidth: 80,
+              maxWidth: 110,
               render: (item) => (
                 <span 
                   className="inline-block px-2.5 py-1 rounded-md text-sm font-semibold"
@@ -2646,7 +2714,8 @@ function MapDetailsContent({
               sortable: true,
               width: '80px',
               group: 'analytics',
-              minWidth: 70,
+              minWidth: 75,
+              maxWidth: 100,
               render: (item) => <span className="text-slate-600">{item.share}%</span>
             }
           ]}
