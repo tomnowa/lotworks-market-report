@@ -2369,10 +2369,35 @@ function MapDetailsContent({
             render: (item) => <span className="font-medium text-slate-800">{item.lot}</span>
           },
           {
-            key: 'community',
-            label: 'Community',
+            key: 'status',
+            label: 'Status',
             sortable: true,
-            render: (item) => <span className="text-slate-600">{item.community}</span>
+            render: (item) => <span className="text-slate-600">{(item as any).status || '—'}</span>
+          },
+          {
+            key: 'productType',
+            label: 'Product Type',
+            sortable: true,
+            render: (item) => <span className="text-slate-600">{(item as any).productType || '—'}</span>
+          },
+          {
+            key: 'lotType',
+            label: 'Lot Type',
+            sortable: true,
+            render: (item) => <span className="text-slate-600">{(item as any).lotType || '—'}</span>
+          },
+          {
+            key: 'frontage',
+            label: 'Frontage (ft)',
+            align: 'right',
+            sortable: true,
+            render: (item) => <span className="text-slate-600">{(item as any).frontage || '—'}</span>
+          },
+          {
+            key: 'builder',
+            label: 'Builder',
+            sortable: true,
+            render: (item) => <span className="text-slate-600">{(item as any).builder || '—'}</span>
           },
           {
             key: 'clicks',
@@ -2404,7 +2429,7 @@ function MapDetailsContent({
         <DataTable<TopLot>
           data={leastLots}
           title="Least Clicked Lots"
-          subtitle={leastLoading ? "Loading..." : leastSelectedCommunities.length > 0 ? `Filtered by ${leastSelectedCommunities.length} communities` : "Lots with lowest engagement by click count"}
+          subtitle={leastLoading ? "Loading..." : leastSelectedCommunities.length > 0 ? `Filtered by ${leastSelectedCommunities.length} communities` : "Lots with lowest engagement — opportunities for improvement"}
           itemsPerPage={10}
           filterComponent={renderFilterDropdown(
             leastFilterOpen, 
@@ -2442,10 +2467,35 @@ function MapDetailsContent({
               render: (item) => <span className="font-medium text-slate-800">{item.lot}</span>
             },
             {
-              key: 'community',
-              label: 'Community',
+              key: 'status',
+              label: 'Status',
               sortable: true,
-              render: (item) => <span className="text-slate-600">{item.community}</span>
+              render: (item) => <span className="text-slate-600">{(item as any).status || '—'}</span>
+            },
+            {
+              key: 'productType',
+              label: 'Product Type',
+              sortable: true,
+              render: (item) => <span className="text-slate-600">{(item as any).productType || '—'}</span>
+            },
+            {
+              key: 'lotType',
+              label: 'Lot Type',
+              sortable: true,
+              render: (item) => <span className="text-slate-600">{(item as any).lotType || '—'}</span>
+            },
+            {
+              key: 'frontage',
+              label: 'Frontage (ft)',
+              align: 'right',
+              sortable: true,
+              render: (item) => <span className="text-slate-600">{(item as any).frontage || '—'}</span>
+            },
+            {
+              key: 'builder',
+              label: 'Builder',
+              sortable: true,
+              render: (item) => <span className="text-slate-600">{(item as any).builder || '—'}</span>
             },
             {
               key: 'clicks',
