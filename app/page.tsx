@@ -1631,68 +1631,17 @@ function DataTable<T>({
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const [resizing, setResizing] = useState<{ key: string; startX: number; startWidth: number } | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   const headerRefs = useRef<Record<string, HTMLTableCellElement | null>>({});
-  const [containerWidth, setContainerWidth] = useState(0);
-  
-  // Track container width for max calculations
-  useEffect(() => {
-    const updateContainerWidth = () => {
-      if (containerRef.current) {
-        setContainerWidth(containerRef.current.offsetWidth);
-      }
-    };
-    
-    updateContainerWidth();
-    window.addEventListener('resize', updateContainerWidth);
-    return () => window.removeEventListener('resize', updateContainerWidth);
-  }, []);
-  
-  // Calculate dynamic max width per column to prevent horizontal scroll
-  const getMaxWidth = useCallback((col: typeof columns[0]) => {
-    if (col.maxWidth) return col.maxWidth;
-    if (!containerWidth) return 400; // Default fallback
-    
-    // Calculate total fixed width (columns with explicit width)
-    const fixedWidth = columns.reduce((sum, c) => {
-      if (c.width) {
-        const w = parseInt(c.width);
-        return sum + (isNaN(w) ? 0 : w);
-      }
-      return sum;
-    }, 0);
-    
-    // Flexible columns share remaining space
-    const flexibleColumns = columns.filter(c => !c.width);
-    const availableWidth = containerWidth - fixedWidth - 32; // 32px for padding
-    const maxPerFlexColumn = Math.floor(availableWidth / Math.max(flexibleColumns.length, 1));
-    
-    return Math.max(maxPerFlexColumn, col.minWidth || 80);
-  }, [containerWidth, columns]);
-  
-  // Initialize column widths from actual rendered widths
-  useEffect(() => {
-    if (tableRef.current && Object.keys(columnWidths).length === 0) {
-      const widths: Record<string, number> = {};
-      columns.forEach(col => {
-        const header = headerRefs.current[col.key];
-        if (header) {
-          widths[col.key] = header.offsetWidth;
-        }
-      });
-      if (Object.keys(widths).length > 0) {
-        setColumnWidths(widths);
-      }
-    }
-  }, [columns, data]);
   
   // Handle resize drag with min/max constraints
   useEffect(() => {
     if (!resizing) return;
     
     const col = columns.find(c => c.key === resizing.key);
-    const minW = col?.minWidth || 60;
-    const maxW = getMaxWidth(col!);
+    if (!col) return;
+    
+    const minW = col.minWidth || 60;
+    const maxW = col.maxWidth || 400;
     
     const handleMouseMove = (e: MouseEvent) => {
       const delta = e.clientX - resizing.startX;
@@ -1710,7 +1659,7 @@ function DataTable<T>({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [resizing, columns, getMaxWidth]);
+  }, [resizing, columns]);
   
   useEffect(() => {
     setPage(0);
@@ -1785,7 +1734,7 @@ function DataTable<T>({
   }
   
   return (
-    <div ref={containerRef} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
         <div className="flex items-center justify-between">
           <div>
@@ -1811,7 +1760,6 @@ function DataTable<T>({
               {columns.map((col, idx) => {
                 const isGroupBoundary = groupBoundaries.has(idx);
                 const width = columnWidths[col.key] || col.width;
-                const maxW = getMaxWidth(col);
                 
                 return (
                   <th
@@ -1820,7 +1768,7 @@ function DataTable<T>({
                     style={{ 
                       width: typeof width === 'number' ? `${width}px` : width,
                       minWidth: col.minWidth || 60,
-                      maxWidth: maxW,
+                      maxWidth: col.maxWidth,
                       fontSize: '11px',
                       lineHeight: '16px',
                       fontWeight: 500,
@@ -1858,14 +1806,13 @@ function DataTable<T>({
               <tr key={index} className="hover:bg-slate-50/50 transition-colors">
                 {columns.map((col, idx) => {
                   const isGroupBoundary = groupBoundaries.has(idx);
-                  const maxW = getMaxWidth(col);
                   return (
                     <td
                       key={col.key}
                       style={{ 
                         fontSize: '14px', 
                         lineHeight: '20px',
-                        maxWidth: maxW,
+                        maxWidth: col.maxWidth,
                       }}
                       className={`px-4 py-3.5 whitespace-nowrap overflow-hidden text-ellipsis ${
                         col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
