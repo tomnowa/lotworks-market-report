@@ -2404,7 +2404,7 @@ function MapDetailsContent({
         <DataTable<TopLot>
           data={leastLots}
           title="Least Clicked Lots"
-          subtitle={leastLoading ? "Loading..." : leastSelectedCommunities.length > 0 ? `Filtered by ${leastSelectedCommunities.length} communities` : "Lots with lowest engagement — opportunities for improvement"}
+          subtitle={leastLoading ? "Loading..." : leastSelectedCommunities.length > 0 ? `Filtered by ${leastSelectedCommunities.length} communities` : "Lots with lowest engagement by click count"}
           itemsPerPage={10}
           filterComponent={renderFilterDropdown(
             leastFilterOpen, 
