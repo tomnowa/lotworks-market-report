@@ -2584,12 +2584,12 @@ function AnalyticsContent({ report }: { report: MarketReport }) {
             )}
           </div>          
           {/* Operating System */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex-1 flex flex-col">
             <SectionHeader title="Operating System" subtitle="Platform distribution" />
             {osBreakdown.length === 0 ? (
               <EmptyState message="No OS data available" />
             ) : (
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-1">
                 <div className="w-2/5 h-36 flex-shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
