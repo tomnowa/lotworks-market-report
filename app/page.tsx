@@ -45,6 +45,8 @@ import {
   mdiFilterOutline,
   mdiChevronUp,
   mdiOpenInNew,
+  mdiEarth,
+  mdiMapMarker,
 } from '@mdi/js';
 import {
   LineChart,
@@ -2269,7 +2271,7 @@ function MapDetailsContent({
                 className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-[#4B5FD7] hover:bg-[#4B5FD7]/10 transition-all duration-200"
                 title={`View ${item.name} map`}
               >
-                <Icon path={mdiOpenInNew} size={0.85} />
+                <Icon path={mdiEarth} size={0.85} />
               </a>
             )
           },
@@ -2340,6 +2342,21 @@ function MapDetailsContent({
         )}
         columns={[
           {
+            key: 'lotLink',
+            label: '',
+            width: '48px',
+            render: (item) => (
+              <a 
+                href="#"
+                onClick={(e) => e.preventDefault()}
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all duration-200"
+                title={`View ${item.lot} on map`}
+              >
+                <Icon path={mdiMapMarker} size={0.85} />
+              </a>
+            )
+          },
+          {
             key: 'rank',
             label: '#',
             width: '60px',
@@ -2397,6 +2414,21 @@ function MapDetailsContent({
             leastLoading
           )}
           columns={[
+            {
+              key: 'lotLink',
+              label: '',
+              width: '48px',
+              render: (item) => (
+                <a 
+                  href="#"
+                  onClick={(e) => e.preventDefault()}
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all duration-200"
+                  title={`View ${item.lot} on map`}
+                >
+                  <Icon path={mdiMapMarker} size={0.85} />
+                </a>
+              )
+            },
             {
               key: 'rank',
               label: '#',
