@@ -3185,7 +3185,13 @@ export default function InsightsPage() {
     let idx = 0;
     const interval = setInterval(() => {
       idx = Math.min(idx + 1, LOADING_MESSAGES.length - 1);
-      setLoadingState({ message: LOADING_MESSAGES[idx].text, progress: LOADING_MESSAGES[idx].progress });
+      setLoadingState(prev => {
+        const next = LOADING_MESSAGES[idx];
+        if (next.progress <= prev.progress) {
+          return prev;
+        }
+        return { message: next.text, progress: next.progress };
+      });
     }, 600);
     return () => clearInterval(interval);
   }, [loading]);
@@ -3219,6 +3225,7 @@ export default function InsightsPage() {
       if (showRefreshIndicator) {
         setRefreshing(true);
       } else {
+        setLoadingState({ message: LOADING_MESSAGES[0].text, progress: LOADING_MESSAGES[0].progress });
         setLoading(true);
         setError(null); // Clear error at start of fresh load
       }
